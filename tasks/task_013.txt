@@ -1,0 +1,84 @@
+# Task ID: 13
+# Title: 댓글 및 좋아요 기능 구현
+# Status: pending
+# Dependencies: 8, 10
+# Priority: medium
+# Description: 일기에 댓글을 달고 좋아요를 표시하는 기능을 구현합니다.
+# Details:
+1. 댓글 컴포넌트 구현:
+```typescript
+function CommentsSection({ journalId }: Props) {
+  const { data: comments, isLoading } = useQuery(
+    ['comments', journalId],
+    () => fetchComments(journalId)
+  );
+  
+  const [newComment, setNewComment] = useState('');
+  
+  const addCommentMutation = useMutation(addComment, {
+    onSuccess: () => {
+      queryClient.invalidateQueries(['comments', journalId]);
+      setNewComment('');
+    }
+  });
+  
+  return (
+    <View>
+      <FlatList
+        data={comments}
+        renderItem={({ item }) => <CommentItem comment={item} />}
+      />
+      <View className="flex-row">
+        <Input
+          value={newComment}
+          onChangeText={setNewComment}
+          placeholder="댓글을 입력하세요"
+          className="flex-1"
+        />
+        <Button
+          title="등록"
+          onPress={() => addCommentMutation.mutate({
+            journalId,
+            content: newComment
+          })}
+          loading={addCommentMutation.isLoading}
+        />
+      </View>
+    </View>
+  );
+}
+```
+2. 좋아요 기능 구현:
+```typescript
+function LikeButton({ journalId }: Props) {
+  const { data: isLiked } = useQuery(
+    ['isLiked', journalId],
+    () => checkIfLiked(journalId)
+  );
+  
+  const likeMutation = useMutation(toggleLike, {
+    onSuccess: () => {
+      queryClient.invalidateQueries(['isLiked', journalId]);
+    }
+  });
+  
+  return (
+    <TouchableOpacity
+      onPress={() => likeMutation.mutate(journalId)}
+      className={`p-2 ${isLiked ? 'bg-red-100' : 'bg-gray-100'}`}
+    >
+      <Text className={isLiked ? 'text-red-500' : 'text-gray-500'}>
+        ❤️ {isLiked ? '좋아요 취소' : '좋아요'}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+```
+3. 댓글 수정 및 삭제 기능
+4. 좋아요 수 표시 기능
+
+# Test Strategy:
+1. 댓글 작성 및 표시 테스트
+2. 좋아요 토글 기능 테스트
+3. 권한에 따른 수정/삭제 기능 테스트
+4. 실시간 업데이트 테스트

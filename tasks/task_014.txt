@@ -1,0 +1,58 @@
+# Task ID: 14
+# Title: 알림 시스템 구현
+# Status: pending
+# Dependencies: 1, 13
+# Priority: low
+# Description: 댓글이나 좋아요 등의 활동에 대한 알림 기능을 구현합니다.
+# Details:
+1. 알림 데이터 모델 설계 및 Supabase 테이블 생성
+2. Supabase Realtime 또는 background polling 설정:
+```typescript
+function setupNotificationListener(userId: string) {
+  const subscription = supabase
+    .from(`notifications:user_id=eq.${userId}`)
+    .on('INSERT', (payload) => {
+      // 새 알림 처리
+      showNotification(payload.new);
+    })
+    .subscribe();
+    
+  return () => {
+    subscription.unsubscribe();
+  };
+}
+```
+3. 알림 목록 화면 구현:
+```typescript
+function NotificationsScreen() {
+  const { data: notifications, isLoading } = useQuery(
+    ['notifications'],
+    fetchNotifications
+  );
+  
+  const markAsReadMutation = useMutation(markNotificationAsRead);
+  
+  return (
+    <FlatList
+      data={notifications}
+      renderItem={({ item }) => (
+        <NotificationItem
+          notification={item}
+          onPress={() => {
+            markAsReadMutation.mutate(item.id);
+            navigateToContent(item);
+          }}
+        />
+      )}
+    />
+  );
+}
+```
+4. 알림 아이콘 및 배지 구현
+5. 알림 설정 기능 (선택적)
+
+# Test Strategy:
+1. 알림 생성 및 수신 테스트
+2. 알림 목록 표시 테스트
+3. 읽음 표시 기능 테스트
+4. 알림 클릭 시 해당 콘텐츠로 이동 테스트

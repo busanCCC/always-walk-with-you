@@ -1,0 +1,40 @@
+# Task ID: 16
+# Title: 오류 처리 및 예외 상황 관리
+# Status: pending
+# Dependencies: 2, 3, 4
+# Priority: medium
+# Description: 앱 전반의 오류 처리 및 예외 상황을 관리하는 시스템을 구현합니다.
+# Details:
+1. 글로벌 에러 핸들링 설정:
+```typescript
+function ErrorBoundary({ children }: Props) {
+  const [error, setError] = useState<Error | null>(null);
+  
+  if (error) {
+    return (
+      <ErrorScreen
+        error={error}
+        onReset={() => setError(null)}
+      />
+    );
+  }
+  
+  return (
+    <ErrorHandler onError={setError}>
+      {children}
+    </ErrorHandler>
+  );
+}
+```
+2. 네트워크 오류 처리:
+   - 오프라인 상태 감지 및 표시
+   - 재시도 메커니즘
+3. 사용자 친화적인 오류 메시지 표시
+4. 로깅 시스템 구현 (선택적)
+5. 예외 상황별 폴백 UI 구현
+
+# Test Strategy:
+1. 다양한 오류 상황 시뮬레이션 및 처리 테스트
+2. 오프라인 모드 테스트
+3. 오류 메시지 표시 및 사용자 경험 테스트
+4. 재시도 메커니즘 테스트

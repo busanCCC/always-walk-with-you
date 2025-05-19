@@ -1,0 +1,52 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Component Classification Guidelines
+Components are categorized into three types. Each type differs in purpose, level of abstraction, reusability, and relationship between logic and view.
+
+1.1 Simple Headless Components
+Definition:
+These components have a clear separation between logic (state, effects, handlers, utilities) and view. They follow a structure similar to the View–ViewModel pattern in MVVM.
+
+Characteristics:
+
+Reusability: Designed for reuse across multiple components or domains.
+
+Responsibility: Encapsulates all logic and state necessary for a corresponding view component to function.
+
+Examples: Button, RowCard, ConfirmModal.
+
+1.2 Combined Headless Components
+Definition:
+Composed of multiple headless components, hooks, and context providers combined into one unit.
+
+Characteristics:
+
+Flexible Composition: Multiple combinations depending on the use case.
+
+Shared State: May use Context to manage and share state between internal components.
+
+Modular Structure: Use dedicated files such as provider.tsx to clearly define context logic.
+
+Examples:
+Accordion.Root, Accordion.Header, Accordion.Title, etc.
+
+1.3 Non-Headless Components
+Definition:
+Traditional reusable UI components that include both logic and layout, where separating view and logic provides little benefit.
+
+Characteristics:
+
+Open Structure: Should allow flexible data injection depending on the usage context.
+
+Patterns: Use patterns like Render Props to support multiple use cases.
+
+Abstraction Level: Lower level of abstraction compared to Headless components.
+
+Usage Scope and Reusability
+Simple Headless and Combined Headless components are domain-agnostic and must be designed for reuse across different projects or modules.
+
+Non-Headless Components are often tightly coupled to specific pages or features, and may only be reused within similar contexts in the same project or domain.
+

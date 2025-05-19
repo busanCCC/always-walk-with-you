@@ -1,0 +1,30 @@
+# Task ID: 5
+# Title: 홈 화면 구현
+# Status: pending
+# Dependencies: 3, 4
+# Priority: high
+# Description: 주간 달력, 오늘의 말씀, 광고, 주보 등을 포함한 홈 화면을 구현합니다.
+# Details:
+1. 홈 화면 레이아웃 구현:
+   - 상단 헤더 (사용자 정보, 알림 아이콘)
+   - 주간 달력 컴포넌트 (현재 주 표시, 일기 작성 여부 표시)
+   - 오늘의 말씀 카드
+   - 목요채플 주보 카드
+   - 광고 배너 (선택적)
+2. 주간 달력 컴포넌트 구현:
+```typescript
+function WeeklyCalendar({ onDayPress }: Props) {
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const weekDays = getWeekDays(selectedDate);
+  
+  // 주간 달력 렌더링 로직
+}
+```
+3. 목요채플 주보 데이터 가져오기 및 표시 (React Query 활용)
+4. 오늘의 말씀 표시 (정적 데이터 또는 API 연동)
+
+# Test Strategy:
+1. 홈 화면 렌더링 테스트
+2. 주간 달력 기능 테스트
+3. 데이터 로딩 및 표시 테스트
+4. 사용자 인터랙션 테스트

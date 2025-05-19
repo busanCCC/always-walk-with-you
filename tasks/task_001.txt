@@ -1,0 +1,25 @@
+# Task ID: 1
+# Title: Supabase 스키마 설계 및 초기화
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: 데이터베이스 스키마를 설계하고 Supabase 프로젝트를 초기화합니다.
+# Details:
+1. Supabase 프로젝트 생성
+2. 다음 테이블 생성:
+   - users: id, name, email, campus, student_id, profile_img
+   - journals: id, user_id, date, content, mode, emotion, shared_groups, created_at
+   - groups: id, name, campus, members, created_at
+   - prayers: id, title, content, group_id, user_id, created_at
+   - achievements: id, user_id, type, condition, achieved_at
+   - comments: id, journal_id, user_id, content, created_at
+   - likes: id, journal_id, user_id, created_at
+3. Row Level Security 정책 설정:
+   - 사용자는 자신의 데이터만 읽고 쓸 수 있음
+   - 그룹 멤버는 공유된 일기와 기도제목에 접근 가능
+4. 외래 키 및 인덱스 설정
+
+# Test Strategy:
+1. 각 테이블 CRUD 작업 테스트
+2. RLS 정책이 올바르게 적용되는지 확인
+3. 관계 및 제약 조건 테스트

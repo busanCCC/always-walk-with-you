@@ -1,0 +1,286 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Supabase 스키마 설계 및 초기화",
+      "description": "데이터베이스 스키마를 설계하고 Supabase 프로젝트를 초기화합니다.",
+      "details": "1. Supabase 프로젝트 생성\n2. 다음 테이블 생성:\n   - users: id, name, email, campus, student_id, profile_img\n   - journals: id, user_id, date, content, mode, emotion, shared_groups, created_at\n   - groups: id, name, campus, members, created_at\n   - prayers: id, title, content, group_id, user_id, created_at\n   - achievements: id, user_id, type, condition, achieved_at\n   - comments: id, journal_id, user_id, content, created_at\n   - likes: id, journal_id, user_id, created_at\n3. Row Level Security 정책 설정:\n   - 사용자는 자신의 데이터만 읽고 쓸 수 있음\n   - 그룹 멤버는 공유된 일기와 기도제목에 접근 가능\n4. 외래 키 및 인덱스 설정",
+      "testStrategy": "1. 각 테이블 CRUD 작업 테스트\n2. RLS 정책이 올바르게 적용되는지 확인\n3. 관계 및 제약 조건 테스트",
+      "priority": "high",
+      "dependencies": [],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 2,
+      "title": "프로젝트 기본 설정 및 의존성 설치",
+      "description": "React Native (Expo) 프로젝트를 설정하고 필요한 라이브러리를 설치합니다.",
+      "details": "1. Expo 프로젝트 초기화: `npx create-expo-app -t expo-template-blank-typescript`\n2. 필요한 패키지 설치:\n   - Supabase Client: `npm install @supabase/supabase-js`\n   - Zustand: `npm install zustand`\n   - React Query: `npm install @tanstack/react-query`\n   - Nativewind: `npm install nativewind tailwindcss`\n   - React Navigation: `npm install @react-navigation/native @react-navigation/bottom-tabs @react-navigation/stack`\n   - Expo AuthSession: `npx expo install expo-auth-session expo-web-browser`\n3. Tailwind 설정 및 기본 테마 구성\n4. 타입스크립트 설정 및 폴더 구조 생성:\n   - src/\n     - components/\n     - screens/\n     - hooks/\n     - store/\n     - api/\n     - utils/\n     - types/\n     - assets/",
+      "testStrategy": "1. 프로젝트 빌드 확인\n2. 개발 서버 실행 및 기본 화면 렌더링 확인\n3. 타입스크립트 설정 검증",
+      "priority": "high",
+      "dependencies": [],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 3,
+      "title": "Supabase 인증 및 사용자 관리 구현",
+      "description": "카카오 로그인 및 사용자 프로필 관리 기능을 구현합니다.",
+      "details": "1. Supabase 클라이언트 설정\n2. Kakao Auth 연동:\n   - Kakao Developer 계정 설정\n   - OAuth 리디렉션 URL 설정\n   - Expo AuthSession을 사용한 인증 흐름 구현\n3. 사용자 인증 상태 관리 (Zustand):\n```typescript\ninterface AuthState {\n  user: User | null;\n  session: Session | null;\n  loading: boolean;\n  signIn: () => Promise<void>;\n  signOut: () => Promise<void>;\n  updateProfile: (data: Partial<User>) => Promise<void>;\n}\n\nexport const useAuthStore = create<AuthState>((set) => ({\n  // 상태 및 액션 구현\n}));\n```\n4. 프로필 설정 화면 구현:\n   - 이름, 캠퍼스, 학번 입력\n   - 프로필 이미지 업로드 (Supabase Storage 활용)",
+      "testStrategy": "1. 카카오 로그인 흐름 테스트\n2. 사용자 정보 저장 및 조회 테스트\n3. 프로필 업데이트 기능 테스트\n4. 인증 상태 유지 및 세션 관리 테스트",
+      "priority": "high",
+      "dependencies": [
+        1,
+        2
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 4,
+      "title": "네비게이션 및 기본 UI 컴포넌트 구현",
+      "description": "앱의 기본 네비게이션 구조와 공통 UI 컴포넌트를 구현합니다.",
+      "details": "1. 네비게이션 구조 설정:\n```typescript\nconst BottomTab = createBottomTabNavigator();\n\nfunction AppNavigator() {\n  return (\n    <BottomTab.Navigator>\n      <BottomTab.Screen name=\"Home\" component={HomeScreen} />\n      <BottomTab.Screen name=\"Group\" component={GroupScreen} />\n      <BottomTab.Screen name=\"Journal\" component={JournalScreen} />\n      <BottomTab.Screen name=\"MyPage\" component={MyPageScreen} />\n    </BottomTab.Navigator>\n  );\n}\n```\n2. 공통 UI 컴포넌트 구현:\n   - Button, Card, Input, Modal, BottomSheet 등\n   - 토스 스타일의 직관적인 문구 및 배치 적용\n3. 테마 및 스타일 시스템 구축 (Nativewind 활용)\n4. 로딩 및 에러 상태 처리 컴포넌트",
+      "testStrategy": "1. 네비게이션 흐름 테스트\n2. 컴포넌트 렌더링 및 스타일 테스트\n3. 반응형 디자인 테스트\n4. 접근성 테스트",
+      "priority": "high",
+      "dependencies": [
+        2,
+        3
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 5,
+      "title": "홈 화면 구현",
+      "description": "주간 달력, 오늘의 말씀, 광고, 주보 등을 포함한 홈 화면을 구현합니다.",
+      "details": "1. 홈 화면 레이아웃 구현:\n   - 상단 헤더 (사용자 정보, 알림 아이콘)\n   - 주간 달력 컴포넌트 (현재 주 표시, 일기 작성 여부 표시)\n   - 오늘의 말씀 카드\n   - 목요채플 주보 카드\n   - 광고 배너 (선택적)\n2. 주간 달력 컴포넌트 구현:\n```typescript\nfunction WeeklyCalendar({ onDayPress }: Props) {\n  const [selectedDate, setSelectedDate] = useState(new Date());\n  const weekDays = getWeekDays(selectedDate);\n  \n  // 주간 달력 렌더링 로직\n}\n```\n3. 목요채플 주보 데이터 가져오기 및 표시 (React Query 활용)\n4. 오늘의 말씀 표시 (정적 데이터 또는 API 연동)",
+      "testStrategy": "1. 홈 화면 렌더링 테스트\n2. 주간 달력 기능 테스트\n3. 데이터 로딩 및 표시 테스트\n4. 사용자 인터랙션 테스트",
+      "priority": "high",
+      "dependencies": [
+        3,
+        4
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 6,
+      "title": "영성일기 캘린더 구현",
+      "description": "월간 캘린더 뷰와 일기 작성 여부를 시각화하는 기능을 구현합니다.",
+      "details": "1. 캘린더 라이브러리 통합 (react-native-calendars 등)\n2. 월간 캘린더 컴포넌트 구현:\n```typescript\nfunction JournalCalendar({ onDayPress }: Props) {\n  const [selectedDate, setSelectedDate] = useState(new Date());\n  const { data: journalDates } = useQuery(['journalDates'], fetchJournalDates);\n  \n  // 작성된 일기가 있는 날짜에 마커 표시\n  const markedDates = useMemo(() => {\n    // journalDates를 기반으로 마커 데이터 생성\n  }, [journalDates]);\n  \n  return (\n    <Calendar\n      markedDates={markedDates}\n      onDayPress={(day) => {\n        setSelectedDate(new Date(day.timestamp));\n        onDayPress(day);\n      }}\n    />\n  );\n}\n```\n3. 일기 작성 여부에 따른 날짜 마커 표시\n4. 날짜 선택 시 해당 일의 일기 표시 또는 작성 화면으로 이동",
+      "testStrategy": "1. 캘린더 렌더링 및 날짜 선택 테스트\n2. 일기 작성 날짜 마커 표시 테스트\n3. 날짜 이동 및 월 변경 테스트\n4. 데이터 로딩 상태 테스트",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        4
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 7,
+      "title": "영성일기 작성 기능 구현",
+      "description": "자유 작성, 프롬프트 기반 작성, 손글씨 업로드 등 세 가지 작성 모드를 구현합니다.",
+      "details": "1. 일기 작성 모드 선택 UI 구현\n2. 자유 작성 모드:\n   - 제목 및 내용 입력 필드\n   - 서식 옵션 (선택적)\n3. 프롬프트 기반 작성 모드:\n   - 미리 정의된 프롬프트 목록 (예: \"오늘 말씀에서 깨달은 점은?\", \"적용할 부분은?\")\n   - 프롬프트별 입력 필드\n4. 손글씨 업로드 모드:\n   - 카메라 또는 갤러리에서 이미지 선택\n   - Supabase Storage에 업로드\n5. 기분 이모지 선택 기능\n6. 공유 설정 (공유할 순 그룹 선택)\n7. 저장 및 취소 기능",
+      "testStrategy": "1. 세 가지 작성 모드 전환 및 기능 테스트\n2. 이미지 업로드 테스트\n3. 데이터 저장 및 오류 처리 테스트\n4. 공유 설정 테스트",
+      "priority": "high",
+      "dependencies": [
+        1,
+        3,
+        6
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 8,
+      "title": "영성일기 상세 보기 및 열람 기능 구현",
+      "description": "작성된 영성일기를 열람하고 상세 내용을 볼 수 있는 기능을 구현합니다.",
+      "details": "1. 일기 상세 화면 구현:\n```typescript\nfunction JournalDetailScreen({ route }: Props) {\n  const { journalId } = route.params;\n  const { data: journal, isLoading } = useQuery(\n    ['journal', journalId],\n    () => fetchJournal(journalId)\n  );\n  \n  if (isLoading) return <LoadingIndicator />;\n  \n  return (\n    <ScrollView>\n      <JournalHeader\n        date={journal.date}\n        emotion={journal.emotion}\n      />\n      <JournalContent\n        mode={journal.mode}\n        content={journal.content}\n      />\n      <CommentsSection journalId={journalId} />\n    </ScrollView>\n  );\n}\n```\n2. 작성 모드별 콘텐츠 표시 방식 구현:\n   - 자유 작성: 텍스트 렌더링\n   - 프롬프트 기반: 프롬프트와 답변 쌍으로 표시\n   - 손글씨: 이미지 표시\n3. 수정 및 삭제 기능\n4. 공유 상태 표시 및 변경 기능",
+      "testStrategy": "1. 일기 데이터 로딩 및 표시 테스트\n2. 다양한 작성 모드별 렌더링 테스트\n3. 수정 및 삭제 기능 테스트\n4. 권한에 따른 접근 제어 테스트",
+      "priority": "medium",
+      "dependencies": [
+        6,
+        7
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 9,
+      "title": "순 그룹 관리 기능 구현",
+      "description": "순 그룹 생성, 조회, 초대 등의 기능을 구현합니다.",
+      "details": "1. 순 그룹 목록 화면 구현:\n```typescript\nfunction GroupListScreen() {\n  const { data: groups, isLoading } = useQuery(\n    ['groups'],\n    fetchUserGroups\n  );\n  \n  return (\n    <View>\n      <FlatList\n        data={groups}\n        renderItem={({ item }) => <GroupCard group={item} />}\n        ListHeaderComponent={<CreateGroupButton />}\n      />\n    </View>\n  );\n}\n```\n2. 순 그룹 생성 기능:\n   - 그룹명, 캠퍼스 입력\n   - 초기 멤버 추가\n3. 그룹 초대 기능:\n   - 이메일 또는 학번으로 검색\n   - 초대 링크 생성 (선택적)\n4. 그룹 상세 화면:\n   - 멤버 목록\n   - 공유된 일기 및 기도제목 목록\n   - 그룹 설정 (관리자용)",
+      "testStrategy": "1. 그룹 목록 로딩 및 표시 테스트\n2. 그룹 생성 및 초대 기능 테스트\n3. 권한에 따른 기능 접근 테스트\n4. 그룹 데이터 업데이트 테스트",
+      "priority": "high",
+      "dependencies": [
+        1,
+        3,
+        4
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 10,
+      "title": "순 그룹 내 공유 콘텐츠 관리 구현",
+      "description": "순 그룹 내에서 공유된 일기를 관리하고 표시하는 기능을 구현합니다.",
+      "status": "pending",
+      "dependencies": [
+        7,
+        8,
+        9
+      ],
+      "priority": "medium",
+      "details": "1. 그룹별 공유 콘텐츠 탭 구현:\n```typescript\nfunction GroupDetailScreen({ route }: Props) {\n  const { groupId } = route.params;\n  const [activeTab, setActiveTab] = useState('journals');\n  \n  return (\n    <View>\n      <GroupHeader groupId={groupId} />\n      <TabBar\n        tabs={['일기', '멤버']}\n        activeTab={activeTab}\n        onTabPress={setActiveTab}\n      />\n      {activeTab === 'journals' && <SharedJournalsList groupId={groupId} />}\n      {activeTab === 'members' && <MembersList groupId={groupId} />}\n    </View>\n  );\n}\n```\n2. 공유된 일기 목록 및 상세 보기\n3. 공유 설정 관리 (일기 작성/수정 시)\n4. 그룹별 접근 권한 관리 (Supabase RLS 활용)",
+      "testStrategy": "1. 공유 콘텐츠 로딩 및 표시 테스트\n2. 탭 전환 및 UI 테스트\n3. 권한에 따른 콘텐츠 접근 테스트\n4. 공유 설정 변경 테스트",
+      "subtasks": []
+    },
+    {
+      "id": 12,
+      "title": "목요채플 주보 기능 구현",
+      "description": "매주 목요채플 주보를 표시하는 기능을 구현합니다.",
+      "details": "1. 주보 데이터 모델 설계 및 Supabase 테이블 생성\n2. 주보 데이터 가져오기 기능 구현:\n```typescript\nfunction useChapelBulletin() {\n  return useQuery(['chapelBulletin'], async () => {\n    const { data, error } = await supabase\n      .from('chapel_bulletins')\n      .select('*')\n      .order('date', { ascending: false })\n      .limit(1);\n      \n    if (error) throw error;\n    return data[0];\n  });\n}\n```\n3. 홈 화면에 주보 카드 컴포넌트 구현:\n```typescript\nfunction ChapelBulletinCard() {\n  const { data, isLoading } = useChapelBulletin();\n  \n  if (isLoading) return <LoadingIndicator />;\n  if (!data) return null;\n  \n  return (\n    <Card>\n      <Text className=\"font-bold text-lg\">{data.title}</Text>\n      <Text className=\"text-gray-600\">{formatDate(data.date)}</Text>\n      <Text className=\"mt-2\">{data.scripture}</Text>\n      <Button\n        title=\"자세히 보기\"\n        onPress={() => navigateToDetail(data.id)}\n      />\n    </Card>\n  );\n}\n```\n4. 주보 상세 보기 화면 구현",
+      "testStrategy": "1. 주보 데이터 로딩 테스트\n2. 카드 컴포넌트 렌더링 테스트\n3. 상세 보기 화면 테스트\n4. 데이터 없을 때의 처리 테스트",
+      "priority": "low",
+      "dependencies": [
+        1,
+        5
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 13,
+      "title": "댓글 및 좋아요 기능 구현",
+      "description": "일기에 댓글을 달고 좋아요를 표시하는 기능을 구현합니다.",
+      "status": "pending",
+      "dependencies": [
+        8,
+        10
+      ],
+      "priority": "medium",
+      "details": "1. 댓글 컴포넌트 구현:\n```typescript\nfunction CommentsSection({ journalId }: Props) {\n  const { data: comments, isLoading } = useQuery(\n    ['comments', journalId],\n    () => fetchComments(journalId)\n  );\n  \n  const [newComment, setNewComment] = useState('');\n  \n  const addCommentMutation = useMutation(addComment, {\n    onSuccess: () => {\n      queryClient.invalidateQueries(['comments', journalId]);\n      setNewComment('');\n    }\n  });\n  \n  return (\n    <View>\n      <FlatList\n        data={comments}\n        renderItem={({ item }) => <CommentItem comment={item} />}\n      />\n      <View className=\"flex-row\">\n        <Input\n          value={newComment}\n          onChangeText={setNewComment}\n          placeholder=\"댓글을 입력하세요\"\n          className=\"flex-1\"\n        />\n        <Button\n          title=\"등록\"\n          onPress={() => addCommentMutation.mutate({\n            journalId,\n            content: newComment\n          })}\n          loading={addCommentMutation.isLoading}\n        />\n      </View>\n    </View>\n  );\n}\n```\n2. 좋아요 기능 구현:\n```typescript\nfunction LikeButton({ journalId }: Props) {\n  const { data: isLiked } = useQuery(\n    ['isLiked', journalId],\n    () => checkIfLiked(journalId)\n  );\n  \n  const likeMutation = useMutation(toggleLike, {\n    onSuccess: () => {\n      queryClient.invalidateQueries(['isLiked', journalId]);\n    }\n  });\n  \n  return (\n    <TouchableOpacity\n      onPress={() => likeMutation.mutate(journalId)}\n      className={`p-2 ${isLiked ? 'bg-red-100' : 'bg-gray-100'}`}\n    >\n      <Text className={isLiked ? 'text-red-500' : 'text-gray-500'}>\n        ❤️ {isLiked ? '좋아요 취소' : '좋아요'}\n      </Text>\n    </TouchableOpacity>\n  );\n}\n```\n3. 댓글 수정 및 삭제 기능\n4. 좋아요 수 표시 기능",
+      "testStrategy": "1. 댓글 작성 및 표시 테스트\n2. 좋아요 토글 기능 테스트\n3. 권한에 따른 수정/삭제 기능 테스트\n4. 실시간 업데이트 테스트",
+      "subtasks": []
+    },
+    {
+      "id": 14,
+      "title": "알림 시스템 구현",
+      "description": "댓글이나 좋아요 등의 활동에 대한 알림 기능을 구현합니다.",
+      "details": "1. 알림 데이터 모델 설계 및 Supabase 테이블 생성\n2. Supabase Realtime 또는 background polling 설정:\n```typescript\nfunction setupNotificationListener(userId: string) {\n  const subscription = supabase\n    .from(`notifications:user_id=eq.${userId}`)\n    .on('INSERT', (payload) => {\n      // 새 알림 처리\n      showNotification(payload.new);\n    })\n    .subscribe();\n    \n  return () => {\n    subscription.unsubscribe();\n  };\n}\n```\n3. 알림 목록 화면 구현:\n```typescript\nfunction NotificationsScreen() {\n  const { data: notifications, isLoading } = useQuery(\n    ['notifications'],\n    fetchNotifications\n  );\n  \n  const markAsReadMutation = useMutation(markNotificationAsRead);\n  \n  return (\n    <FlatList\n      data={notifications}\n      renderItem={({ item }) => (\n        <NotificationItem\n          notification={item}\n          onPress={() => {\n            markAsReadMutation.mutate(item.id);\n            navigateToContent(item);\n          }}\n        />\n      )}\n    />\n  );\n}\n```\n4. 알림 아이콘 및 배지 구현\n5. 알림 설정 기능 (선택적)",
+      "testStrategy": "1. 알림 생성 및 수신 테스트\n2. 알림 목록 표시 테스트\n3. 읽음 표시 기능 테스트\n4. 알림 클릭 시 해당 콘텐츠로 이동 테스트",
+      "priority": "low",
+      "dependencies": [
+        1,
+        13
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 15,
+      "title": "마이페이지 및 업적 시스템 구현",
+      "description": "사용자 프로필 관련 기능을 포함한 마이페이지를 구현합니다.",
+      "status": "pending",
+      "dependencies": [
+        3,
+        7
+      ],
+      "priority": "medium",
+      "details": "1. 마이페이지 화면 UI 구현:\n```typescript\nfunction MyPageScreen() {\n  const { user } = useAuthStore();\n  \n  return (\n    <ScrollView>\n      <ProfileCard user={user} />\n      <StatsSection userId={user.id} />\n      <SettingsSection />\n    </ScrollView>\n  );\n}\n```\n2. 프로필 카드 컴포넌트 구현:\n   - 사용자 정보 표시\n   - 프로필 이미지 변경 기능\n3. 설정 섹션 구현:\n   - 계정 설정\n   - 알림 설정\n   - 앱 정보",
+      "testStrategy": "1. 프로필 정보가 올바르게 표시되는지 테스트\n2. 프로필 이미지 변경 기능 테스트\n3. 설정 섹션의 각 기능이 정상 작동하는지 테스트",
+      "subtasks": []
+    },
+    {
+      "id": 16,
+      "title": "오류 처리 및 예외 상황 관리",
+      "description": "앱 전반의 오류 처리 및 예외 상황을 관리하는 시스템을 구현합니다.",
+      "details": "1. 글로벌 에러 핸들링 설정:\n```typescript\nfunction ErrorBoundary({ children }: Props) {\n  const [error, setError] = useState<Error | null>(null);\n  \n  if (error) {\n    return (\n      <ErrorScreen\n        error={error}\n        onReset={() => setError(null)}\n      />\n    );\n  }\n  \n  return (\n    <ErrorHandler onError={setError}>\n      {children}\n    </ErrorHandler>\n  );\n}\n```\n2. 네트워크 오류 처리:\n   - 오프라인 상태 감지 및 표시\n   - 재시도 메커니즘\n3. 사용자 친화적인 오류 메시지 표시\n4. 로깅 시스템 구현 (선택적)\n5. 예외 상황별 폴백 UI 구현",
+      "testStrategy": "1. 다양한 오류 상황 시뮬레이션 및 처리 테스트\n2. 오프라인 모드 테스트\n3. 오류 메시지 표시 및 사용자 경험 테스트\n4. 재시도 메커니즘 테스트",
+      "priority": "medium",
+      "dependencies": [
+        2,
+        3,
+        4
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 17,
+      "title": "권한 관리 및 보안 구현",
+      "description": "사용자 권한 관리 및 데이터 보안을 구현합니다.",
+      "details": "1. Supabase Row Level Security 정책 상세 구현:\n```sql\n-- 일기 테이블 RLS 예시\nCREATE POLICY \"사용자는 자신의 일기만 볼 수 있음\"\n  ON journals\n  FOR SELECT\n  USING (auth.uid() = user_id OR\n         EXISTS (\n           SELECT 1 FROM groups g\n           JOIN group_members gm ON g.id = gm.group_id\n           WHERE gm.user_id = auth.uid()\n           AND g.id = ANY(journals.shared_groups)\n         ));\n```\n2. 클라이언트 측 권한 검사 구현:\n```typescript\nfunction usePermissions(resourceType: string, resourceId: string) {\n  const { data } = useQuery(\n    ['permissions', resourceType, resourceId],\n    () => checkPermissions(resourceType, resourceId)\n  );\n  \n  return {\n    canView: data?.canView ?? false,\n    canEdit: data?.canEdit ?? false,\n    canDelete: data?.canDelete ?? false\n  };\n}\n```\n3. 민감한 데이터 처리 방식 구현\n4. API 요청 인증 및 권한 검사",
+      "testStrategy": "1. RLS 정책 테스트\n2. 다양한 권한 상황에서의 접근 테스트\n3. 권한 없는 리소스 접근 시도 테스트\n4. 클라이언트 측 권한 UI 테스트",
+      "priority": "high",
+      "dependencies": [
+        1,
+        3
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 18,
+      "title": "성능 최적화",
+      "description": "앱의 성능을 최적화하고 사용자 경험을 개선합니다.",
+      "details": "1. 이미지 최적화:\n   - 이미지 리사이징 및 압축\n   - 이미지 캐싱\n2. React Query 캐싱 전략 최적화:\n```typescript\nconst queryClient = new QueryClient({\n  defaultOptions: {\n    queries: {\n      staleTime: 5 * 60 * 1000, // 5분\n      cacheTime: 30 * 60 * 1000, // 30분\n      retry: 1,\n      refetchOnWindowFocus: false,\n    },\n  },\n});\n```\n3. 컴포넌트 메모이제이션:\n   - React.memo, useMemo, useCallback 적절히 활용\n4. 가상화 목록 구현 (FlatList 최적화)\n5. 지연 로딩 및 코드 분할 (가능한 경우)\n6. 네트워크 요청 최적화",
+      "testStrategy": "1. 성능 메트릭 측정 (로딩 시간, 렌더링 성능 등)\n2. 메모리 사용량 모니터링\n3. 대용량 데이터 처리 테스트\n4. 다양한 기기에서의 성능 테스트",
+      "priority": "low",
+      "dependencies": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        12,
+        13,
+        14,
+        15
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 19,
+      "title": "앱 배포 준비",
+      "description": "앱 스토어 배포를 위한 준비 작업을 수행합니다.",
+      "details": "1. 앱 아이콘 및 스플래시 스크린 구현\n2. 앱 버전 관리 설정\n3. Expo EAS 빌드 설정:\n```json\n// eas.json\n{\n  \"build\": {\n    \"production\": {\n      \"distribution\": \"store\",\n      \"android\": {\n        \"buildType\": \"app-bundle\"\n      },\n      \"ios\": {\n        \"buildConfiguration\": \"Release\"\n      }\n    },\n    \"preview\": {\n      \"distribution\": \"internal\",\n      \"android\": {\n        \"buildType\": \"apk\"\n      }\n    }\n  }\n}\n```\n4. 앱 스토어 스크린샷 및 설명 준비\n5. 개인정보 처리방침 작성\n6. 테스트 빌드 생성 및 배포",
+      "testStrategy": "1. 다양한 기기에서의 테스트 빌드 검증\n2. 스토어 심사 요구사항 준수 확인\n3. 앱 크기 및 성능 최종 점검\n4. 사용자 온보딩 흐름 테스트",
+      "priority": "low",
+      "dependencies": [
+        18
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 20,
+      "title": "테스트 및 품질 보증",
+      "description": "앱의 전반적인 품질을 보장하기 위한 테스트를 수행합니다.",
+      "details": "1. 단위 테스트 구현:\n```typescript\nimport { render, fireEvent } from '@testing-library/react-native';\n\ndescribe('JournalForm', () => {\n  it('submits the form with correct data', () => {\n    const mockSubmit = jest.fn();\n    const { getByText, getByPlaceholderText } = render(\n      <JournalForm onSubmit={mockSubmit} />\n    );\n    \n    fireEvent.changeText(getByPlaceholderText('제목'), '테스트 일기');\n    fireEvent.changeText(getByPlaceholderText('내용'), '테스트 내용');\n    fireEvent.press(getByText('저장'));\n    \n    expect(mockSubmit).toHaveBeenCalledWith({\n      title: '테스트 일기',\n      content: '테스트 내용',\n      shared: false\n    });\n  });\n});\n```\n2. 통합 테스트 구현\n3. E2E 테스트 (선택적)\n4. 사용성 테스트:\n   - 실제 사용자 대상 테스트\n   - 피드백 수집 및 개선\n5. 접근성 테스트\n6. 보안 테스트",
+      "testStrategy": "1. 테스트 커버리지 측정\n2. 주요 사용자 흐름 테스트\n3. 경계 조건 및 예외 상황 테스트\n4. 다양한 기기 및 OS 버전에서의 테스트",
+      "priority": "medium",
+      "dependencies": [
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "status": "pending",
+      "subtasks": []
+    }
+  ]
+}

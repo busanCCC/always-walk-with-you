@@ -1,0 +1,161 @@
+<context>  
+# Overview  
+CCC 영성일기 앱은 청년 대학생들의 영적 성장을 돕기 위해 설계된 앱으로, 매일의 영성일기 작성, 순(그룹) 기반의 나눔, 기도제목 공유, 주간 예배 자료 제공 등을 중심으로 신앙 공동체 속에서의 성찰과 교제를 자연스럽게 만들어준다.  
+기존의 불편한 UI를 개선하고, 기록을 습관화하며 성장을 시각화할 수 있는 기능들을 제공한다.
+
+# Core Features
+
+### 1. 영성일기 작성 및 캘린더
+
+* **기능**: 자유 작성 / 프롬프트 기반 작성 / 손글씨 업로드
+* **의의**: 기록을 통해 말씀과 삶을 연결하고, 일상을 신앙으로 해석하는 습관 형성
+* **작동 방식**: 사용자가 선택한 모드로 일기 작성, 기분 이모지 추가, 순 선택 후 공유 여부 설정 → 달력에 기록 시각화
+
+### 2. 순 그룹 기능
+
+* **기능**: 소속 순 그룹 보기, 초대, 공유된 일기/기도제목 보기
+* **의의**: 공동체 속에서 서로의 기록을 공유하고 격려하는 문화 형성
+* **작동 방식**: 순 목록 → 순 상세 → 일기/기도제목 리스트 → 상세 보기 (댓글/좋아요 기능 포함)
+
+### 3. 기도제목 공유
+
+* **기능**: 순 단위로 기도제목 작성 및 공유
+* **의의**: 서로를 위해 기도하고 응답을 나누는 훈련
+* **작동 방식**: 제목/내용 작성 → 공유할 순 선택 → 목록에서 확인 및 ‘기도 중입니다’ 버튼 제공
+
+### 4. 목요채플 주보
+
+* **기능**: 매주 목요채플 주보 확인
+* **의의**: 캠퍼스 내 공예배 참여를 독려하고 말씀 묵상을 도와줌
+* **작동 방식**: 홈 화면 내 카드 형태로 요약된 주보 제공 (간단한 제목/본문)
+
+### 5. 업적 및 마이페이지
+
+* **기능**: 작성 횟수, 연속 스트릭, 교육/수련회 업적 표시
+* **의의**: 신앙적 습관 형성과 동기 부여
+* **작동 방식**: 프로필 카드 + 업적 캐러셀 (완료 업적은 컬러, 미완료는 흑백 처리)
+
+### 6. 알림 기능
+
+* **기능**: 댓글 알림
+* **의의**: 피드백과 소통을 유도
+* **작동 방식**: Supabase 리얼타임 기능 또는 background polling
+
+# User Experience
+
+### User Personas
+
+* **대학생 A**: CCC 정기모임에 참여 중이며 개인적인 묵상 기록을 꾸준히 하고 싶어함
+* **순장 B**: 순원들의 영적 상태를 함께 나누고 기도제목을 정리해 순 관리에 활용
+* **새내기 C**: 신앙생활이 처음이라 기록 습관이나 기도에 도움이 필요한 사용자
+
+### Key User Flows
+
+* 로그인 → 프로필 설정 → 홈 → 영성일기 작성 → 순과 공유
+* 순 그룹 → 공유된 일기 열람 → 댓글/좋아요
+* 홈 → 주보 확인 → 기도제목 열람
+* 마이 → 업적 확인
+
+### UI/UX Considerations
+
+* 토스 스타일의 직관적인 문구 및 배치
+* Bottom Sheet, Dialog 기반의 간결한 인터랙션
+* 이모지 및 카드 UI 활용으로 친숙한 감성
+* Navigation bar: 홈 / 순 / 영성일기 / 마이
+
+</context>  
+<PRD>  
+
+# Technical Architecture
+
+### System Components
+
+* React Native (Expo) 기반 모바일 앱
+* Supabase (Auth, DB, Storage, Realtime, Edge Functions)
+* Zustand (전역 상태관리), React Query (비동기 캐싱)
+* Nativewind (Tailwind 기반 UI 스타일링)
+
+### Data Models
+
+* **User**: id, name, email, campus, student\_id, profile\_img
+* **Journal**: id, user\_id, date, content, mode, emotion, shared\_groups\[], created\_at
+* **Group (순)**: id, name, campus, members\[], journals\[], prayers\[]
+* **Prayer**: id, title, content, group\_id, user\_id, created\_at
+* **Achievement**: id, user\_id, type, condition, achieved\_at
+* **Comment**: id, journal\_id, user\_id, content, created\_at
+* **Like**: journal\_id, user\_id
+
+### APIs and Integrations
+
+* Supabase Client SDK
+* Kakao Auth 연동 (Expo AuthSession 사용)
+
+### Infrastructure Requirements
+
+* Supabase (DB + Auth + Realtime + Storage + Functions)
+* Expo EAS for production builds
+
+# Development Roadmap
+
+### MVP Requirements
+
+* 회원가입 및 로그인 (카카오)
+* 프로필 설정
+* 홈: 주간 달력, 오늘의 말씀, 광고, 주보
+* 영성일기: 달력 + 작성 기능 3종류 + 공유 + 열람
+* 순 그룹: 그룹 목록 + 생성/초대 + 공유된 일기 열람
+* 기도제목: 작성 + 열람 + ‘기도 중입니다’
+* 마이페이지 + 업적 캐러셀
+* 댓글/좋아요 + 알림
+* 기본적인 권한 제어 및 오류 핸들링 페이지
+
+### Future Enhancements
+
+* 푸시 알림 (Expo Push Notification or Firebase)
+* 교육 수료 시 업적 자동 부여 기능
+* AI 기반 말씀 요약 기능
+* 웹 버전 대시보드
+
+# Logical Dependency Chain
+
+1. Supabase 스키마 설계 및 기본 인증
+2. Auth 및 프로필 설정
+3. 홈 페이지 → 가장 빨리 시각적 피드백 확보
+4. 영성일기 작성 + 캘린더
+5. 순 기능 → 공유 기반 활성화
+6. 기도제목
+7. 마이페이지 및 업적
+8. 댓글, 좋아요
+9. 알림 시스템
+
+# Risks and Mitigations
+
+### Technical Challenges
+
+* Supabase 권한 관리 (Row Level Security) → 테이블별 정책 사전 정의
+* 캘린더 UI 구현 난이도 → 기존 라이브러리 활용 + 커스텀 최소화
+
+### MVP 범위 설계
+
+* 모든 일기를 공유하는 것이 아닌 “순 기반 공유”로 범위 축소
+* 푸시 알림은 MVP 이후 구현
+
+### Resource Constraints
+
+* 디자이너 없이 개발자 중심 → Figma AI 프롬프트 적극 활용
+* 초기엔 테스트 유저 소수로 폐쇄형 베타 운영 고려
+
+# Appendix
+
+### Research Findings
+
+* 기존 ‘예수동행일기’는 UX가 무겁고 작성이 부담스러움
+* CCC 내부에서도 영성기록에 대한 니즈는 높으나 기록 방식이 다양
+
+### Technical Specifications
+
+* Expo SDK 50+
+* Supabase Row Level Security + Edge Functions
+* 앱 크로스플랫폼 배포 (iOS/Android)
+
+</PRD>

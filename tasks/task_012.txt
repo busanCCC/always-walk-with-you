@@ -1,0 +1,51 @@
+# Task ID: 12
+# Title: 목요채플 주보 기능 구현
+# Status: pending
+# Dependencies: 1, 5
+# Priority: low
+# Description: 매주 목요채플 주보를 표시하는 기능을 구현합니다.
+# Details:
+1. 주보 데이터 모델 설계 및 Supabase 테이블 생성
+2. 주보 데이터 가져오기 기능 구현:
+```typescript
+function useChapelBulletin() {
+  return useQuery(['chapelBulletin'], async () => {
+    const { data, error } = await supabase
+      .from('chapel_bulletins')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(1);
+      
+    if (error) throw error;
+    return data[0];
+  });
+}
+```
+3. 홈 화면에 주보 카드 컴포넌트 구현:
+```typescript
+function ChapelBulletinCard() {
+  const { data, isLoading } = useChapelBulletin();
+  
+  if (isLoading) return <LoadingIndicator />;
+  if (!data) return null;
+  
+  return (
+    <Card>
+      <Text className="font-bold text-lg">{data.title}</Text>
+      <Text className="text-gray-600">{formatDate(data.date)}</Text>
+      <Text className="mt-2">{data.scripture}</Text>
+      <Button
+        title="자세히 보기"
+        onPress={() => navigateToDetail(data.id)}
+      />
+    </Card>
+  );
+}
+```
+4. 주보 상세 보기 화면 구현
+
+# Test Strategy:
+1. 주보 데이터 로딩 테스트
+2. 카드 컴포넌트 렌더링 테스트
+3. 상세 보기 화면 테스트
+4. 데이터 없을 때의 처리 테스트

@@ -1,0 +1,33 @@
+# Task ID: 4
+# Title: 네비게이션 및 기본 UI 컴포넌트 구현
+# Status: pending
+# Dependencies: 2, 3
+# Priority: high
+# Description: 앱의 기본 네비게이션 구조와 공통 UI 컴포넌트를 구현합니다.
+# Details:
+1. 네비게이션 구조 설정:
+```typescript
+const BottomTab = createBottomTabNavigator();
+
+function AppNavigator() {
+  return (
+    <BottomTab.Navigator>
+      <BottomTab.Screen name="Home" component={HomeScreen} />
+      <BottomTab.Screen name="Group" component={GroupScreen} />
+      <BottomTab.Screen name="Journal" component={JournalScreen} />
+      <BottomTab.Screen name="MyPage" component={MyPageScreen} />
+    </BottomTab.Navigator>
+  );
+}
+```
+2. 공통 UI 컴포넌트 구현:
+   - Button, Card, Input, Modal, BottomSheet 등
+   - 토스 스타일의 직관적인 문구 및 배치 적용
+3. 테마 및 스타일 시스템 구축 (Nativewind 활용)
+4. 로딩 및 에러 상태 처리 컴포넌트
+
+# Test Strategy:
+1. 네비게이션 흐름 테스트
+2. 컴포넌트 렌더링 및 스타일 테스트
+3. 반응형 디자인 테스트
+4. 접근성 테스트

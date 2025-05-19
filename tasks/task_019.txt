@@ -1,0 +1,41 @@
+# Task ID: 19
+# Title: 앱 배포 준비
+# Status: pending
+# Dependencies: 18
+# Priority: low
+# Description: 앱 스토어 배포를 위한 준비 작업을 수행합니다.
+# Details:
+1. 앱 아이콘 및 스플래시 스크린 구현
+2. 앱 버전 관리 설정
+3. Expo EAS 빌드 설정:
+```json
+// eas.json
+{
+  "build": {
+    "production": {
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}
+```
+4. 앱 스토어 스크린샷 및 설명 준비
+5. 개인정보 처리방침 작성
+6. 테스트 빌드 생성 및 배포
+
+# Test Strategy:
+1. 다양한 기기에서의 테스트 빌드 검증
+2. 스토어 심사 요구사항 준수 확인
+3. 앱 크기 및 성능 최종 점검
+4. 사용자 온보딩 흐름 테스트

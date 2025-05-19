@@ -1,0 +1,44 @@
+# Task ID: 17
+# Title: 권한 관리 및 보안 구현
+# Status: pending
+# Dependencies: 1, 3
+# Priority: high
+# Description: 사용자 권한 관리 및 데이터 보안을 구현합니다.
+# Details:
+1. Supabase Row Level Security 정책 상세 구현:
+```sql
+-- 일기 테이블 RLS 예시
+CREATE POLICY "사용자는 자신의 일기만 볼 수 있음"
+  ON journals
+  FOR SELECT
+  USING (auth.uid() = user_id OR
+         EXISTS (
+           SELECT 1 FROM groups g
+           JOIN group_members gm ON g.id = gm.group_id
+           WHERE gm.user_id = auth.uid()
+           AND g.id = ANY(journals.shared_groups)
+         ));
+```
+2. 클라이언트 측 권한 검사 구현:
+```typescript
+function usePermissions(resourceType: string, resourceId: string) {
+  const { data } = useQuery(
+    ['permissions', resourceType, resourceId],
+    () => checkPermissions(resourceType, resourceId)
+  );
+  
+  return {
+    canView: data?.canView ?? false,
+    canEdit: data?.canEdit ?? false,
+    canDelete: data?.canDelete ?? false
+  };
+}
+```
+3. 민감한 데이터 처리 방식 구현
+4. API 요청 인증 및 권한 검사
+
+# Test Strategy:
+1. RLS 정책 테스트
+2. 다양한 권한 상황에서의 접근 테스트
+3. 권한 없는 리소스 접근 시도 테스트
+4. 클라이언트 측 권한 UI 테스트

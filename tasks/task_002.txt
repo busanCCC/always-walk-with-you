@@ -1,0 +1,31 @@
+# Task ID: 2
+# Title: 프로젝트 기본 설정 및 의존성 설치
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: React Native (Expo) 프로젝트를 설정하고 필요한 라이브러리를 설치합니다.
+# Details:
+1. Expo 프로젝트 초기화: `npx create-expo-app -t expo-template-blank-typescript`
+2. 필요한 패키지 설치:
+   - Supabase Client: `npm install @supabase/supabase-js`
+   - Zustand: `npm install zustand`
+   - React Query: `npm install @tanstack/react-query`
+   - Nativewind: `npm install nativewind tailwindcss`
+   - React Navigation: `npm install @react-navigation/native @react-navigation/bottom-tabs @react-navigation/stack`
+   - Expo AuthSession: `npx expo install expo-auth-session expo-web-browser`
+3. Tailwind 설정 및 기본 테마 구성
+4. 타입스크립트 설정 및 폴더 구조 생성:
+   - src/
+     - components/
+     - screens/
+     - hooks/
+     - store/
+     - api/
+     - utils/
+     - types/
+     - assets/
+
+# Test Strategy:
+1. 프로젝트 빌드 확인
+2. 개발 서버 실행 및 기본 화면 렌더링 확인
+3. 타입스크립트 설정 검증

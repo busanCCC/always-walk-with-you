@@ -1,0 +1,36 @@
+# Task ID: 10
+# Title: 순 그룹 내 공유 콘텐츠 관리 구현
+# Status: pending
+# Dependencies: 7, 8, 9
+# Priority: medium
+# Description: 순 그룹 내에서 공유된 일기를 관리하고 표시하는 기능을 구현합니다.
+# Details:
+1. 그룹별 공유 콘텐츠 탭 구현:
+```typescript
+function GroupDetailScreen({ route }: Props) {
+  const { groupId } = route.params;
+  const [activeTab, setActiveTab] = useState('journals');
+  
+  return (
+    <View>
+      <GroupHeader groupId={groupId} />
+      <TabBar
+        tabs={['일기', '멤버']}
+        activeTab={activeTab}
+        onTabPress={setActiveTab}
+      />
+      {activeTab === 'journals' && <SharedJournalsList groupId={groupId} />}
+      {activeTab === 'members' && <MembersList groupId={groupId} />}
+    </View>
+  );
+}
+```
+2. 공유된 일기 목록 및 상세 보기
+3. 공유 설정 관리 (일기 작성/수정 시)
+4. 그룹별 접근 권한 관리 (Supabase RLS 활용)
+
+# Test Strategy:
+1. 공유 콘텐츠 로딩 및 표시 테스트
+2. 탭 전환 및 UI 테스트
+3. 권한에 따른 콘텐츠 접근 테스트
+4. 공유 설정 변경 테스트

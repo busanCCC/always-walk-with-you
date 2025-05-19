@@ -1,0 +1,80 @@
+---
+description: 
+globs: *.tsx,*.ts,*.js,*.jsx
+alwaysApply: false
+---
+Naming Conventions
+Variables & Functions: Use camelCase. For example, userName, getUserData.
+
+Classes & Interfaces: Use PascalCase, such as UserService, UserInterface.
+
+Files & Folders: Use either kebab-case or camelCase, and maintain consistency across the project, e.g., user-service.ts or userService.ts.
+
+Constants: Use UPPER_SNAKE_CASE, like API_URL, MAX_COUNT.
+
+Project Structure & File Rules
+Import Order: Sort imports by external libraries, internal modules, and styles, typically in alphabetical order and grouped logically.
+
+Extensions: Use .ts or .tsx for TypeScript (especially React components), and .js or .jsx for JavaScript.
+
+File Naming: Use lowercase and hyphens or camelCase consistently. Maintain a consistent folder structure by feature or domain.
+
+Documentation & Comments
+JSDoc: Use JSDoc for functions, classes, and interfaces to describe purpose, inputs, outputs, and exceptions.
+
+Comments: Write clear, concise comments for complex logic. Keep comments updated with code changes.
+
+CI/CD Integration
+Lint & Format: Integrate linting and formatting into CI/CD pipelines to automatically validate all commits.
+
+JavaScript/TypeScript Practices
+Functions: Use arrow functions for simple logic. Clearly distinguish between declarations and expressions.
+
+This Binding: Be cautious with arrow functions in class methods, as they inherit the parent context’s this.
+
+Immutability: Use const for non-reassignable values, and let only when reassignment is necessary.
+
+Scope: Use block-scoped variable declarations and minimize global variables.
+
+Explicit Types: Prefer explicit type annotations in TypeScript for better readability and stability.
+
+Interface vs. Type: Use interface for object shapes, and type for complex or union types.
+
+Generics: Use generics to ensure type safety in reusable functions and components.
+
+Props Typing: Always use type aliases to define function and component props.
+
+ES6+ Features
+Destructuring: Use destructuring to keep code concise when extracting values from objects/arrays.
+
+Spread Operator: Use the spread operator to copy and update arrays or objects while preserving immutability.
+
+Async/Await: Use async/await for readability in asynchronous code.
+
+Error Handling: Use try/catch in async functions, and .catch() with Promises.
+
+Error Messages: Provide clear and informative messages for both users and developers.
+
+Error & Exception Management
+Global Handlers: Use a global error handler in backend frameworks (e.g., Express, NestJS) for consistent exception handling.
+
+Code Quality
+Pure Functions: Write pure functions with predictable outputs to improve testability and reusability.
+
+Modularity: Organize code by feature or responsibility to improve maintainability.
+
+Dependency Injection: Use DI in backend frameworks to reduce coupling between modules.
+
+DRY Principle: Avoid code duplication by extracting shared logic into utilities or modules.
+
+KISS Principle: Keep logic simple and implement only what is necessary.
+
+YAGNI Principle: Avoid over-engineering and do not add features until they are needed.
+
+Performance: Avoid unnecessary re-renders, memory leaks, and optimize network requests.
+
+Input Validation: Thoroughly validate all user inputs to prevent security vulnerabilities (e.g., SQL injection, XSS).
+
+Environment Variables: Use .env files for sensitive configs and exclude them from version control.
+
+Dependency Management: Regularly check for security updates and replace vulnerable packages promptly.

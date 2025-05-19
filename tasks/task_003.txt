@@ -1,0 +1,36 @@
+# Task ID: 3
+# Title: Supabase 인증 및 사용자 관리 구현
+# Status: pending
+# Dependencies: 1, 2
+# Priority: high
+# Description: 카카오 로그인 및 사용자 프로필 관리 기능을 구현합니다.
+# Details:
+1. Supabase 클라이언트 설정
+2. Kakao Auth 연동:
+   - Kakao Developer 계정 설정
+   - OAuth 리디렉션 URL 설정
+   - Expo AuthSession을 사용한 인증 흐름 구현
+3. 사용자 인증 상태 관리 (Zustand):
+```typescript
+interface AuthState {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  // 상태 및 액션 구현
+}));
+```
+4. 프로필 설정 화면 구현:
+   - 이름, 캠퍼스, 학번 입력
+   - 프로필 이미지 업로드 (Supabase Storage 활용)
+
+# Test Strategy:
+1. 카카오 로그인 흐름 테스트
+2. 사용자 정보 저장 및 조회 테스트
+3. 프로필 업데이트 기능 테스트
+4. 인증 상태 유지 및 세션 관리 테스트

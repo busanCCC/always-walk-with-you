@@ -1,0 +1,43 @@
+# Task ID: 20
+# Title: 테스트 및 품질 보증
+# Status: pending
+# Dependencies: 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18
+# Priority: medium
+# Description: 앱의 전반적인 품질을 보장하기 위한 테스트를 수행합니다.
+# Details:
+1. 단위 테스트 구현:
+```typescript
+import { render, fireEvent } from '@testing-library/react-native';
+
+describe('JournalForm', () => {
+  it('submits the form with correct data', () => {
+    const mockSubmit = jest.fn();
+    const { getByText, getByPlaceholderText } = render(
+      <JournalForm onSubmit={mockSubmit} />
+    );
+    
+    fireEvent.changeText(getByPlaceholderText('제목'), '테스트 일기');
+    fireEvent.changeText(getByPlaceholderText('내용'), '테스트 내용');
+    fireEvent.press(getByText('저장'));
+    
+    expect(mockSubmit).toHaveBeenCalledWith({
+      title: '테스트 일기',
+      content: '테스트 내용',
+      shared: false
+    });
+  });
+});
+```
+2. 통합 테스트 구현
+3. E2E 테스트 (선택적)
+4. 사용성 테스트:
+   - 실제 사용자 대상 테스트
+   - 피드백 수집 및 개선
+5. 접근성 테스트
+6. 보안 테스트
+
+# Test Strategy:
+1. 테스트 커버리지 측정
+2. 주요 사용자 흐름 테스트
+3. 경계 조건 및 예외 상황 테스트
+4. 다양한 기기 및 OS 버전에서의 테스트
