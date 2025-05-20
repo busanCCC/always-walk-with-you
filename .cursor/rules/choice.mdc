@@ -1,0 +1,7 @@
+---
+description: Guidelines for creating and maintaining Cursor rules to ensure consistency and effectiveness.
+globs: .cursor/rules/*.mdc
+alwaysApply: true
+---
+if you're more than 90% sure it's the right choice. If not, ask for clarification
+

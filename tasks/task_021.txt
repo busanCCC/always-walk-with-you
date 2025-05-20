@@ -1,0 +1,104 @@
+# Task ID: 21
+# Title: Implement Splash Screen for Initial App Loading
+# Status: done
+# Dependencies: 2
+# Priority: high
+# Description: Design and implement a splash screen that displays during the initial loading of the mobile application to improve user experience and establish brand identity, based on the provided Figma design.
+# Details:
+The implementation should include the following:
+
+1. Create a visually appealing splash screen with the app logo, brand colors, and potentially a loading indicator, following the Figma design at https://www.figma.com/design/nLXCeOfnjA8PwAoiaQSuZZ/BUSAN-CCC-APP?node-id=54-136&t=kuMY74aDVaUW66eh-4.
+2. Utilize the Expo SplashScreen API or react-native-splash-screen library depending on project requirements.
+3. Configure the splash screen to display for an appropriate duration (typically 2-3 seconds) or until all necessary resources are loaded.
+4. Implement smooth transitions from the splash screen to the main application interface.
+5. Ensure the splash screen is responsive and displays correctly on various device sizes and orientations.
+6. Add any necessary animations or effects that align with the app's design language.
+7. Optimize image assets for the splash screen to ensure fast loading.
+8. Configure both Android and iOS splash screen settings in the respective native configuration files.
+9. Ensure the splash screen follows platform-specific design guidelines.
+10. Document the implementation approach and any configuration details for future reference.
+11. Integrate the pin.png image asset as specified in the Figma design.
+12. Connect the created splash screen component to App.tsx for proper initialization.
+
+This task requires completion of Task 2 (Project Setup and Dependency Installation) as it depends on the core React Native/Expo project structure being in place.
+
+# Test Strategy:
+Testing should verify the following aspects:
+
+1. **Visual Testing**:
+   - Verify the splash screen displays correctly on multiple device sizes (phones and tablets).
+   - Confirm the splash screen appears in both portrait and landscape orientations.
+   - Ensure all visual elements (logo, text, animations) render as designed.
+   - Verify the splash screen matches the Figma design specifications exactly.
+   - Confirm the pin.png image is displayed correctly.
+
+2. **Functional Testing**:
+   - Confirm the splash screen appears immediately when the app is launched.
+   - Verify the splash screen displays for the appropriate duration.
+   - Test that the transition from splash screen to the main app is smooth without flickering.
+   - Ensure the splash screen doesn't reappear when navigating within the app.
+   - Verify proper integration with App.tsx.
+
+3. **Performance Testing**:
+   - Measure the load time of the splash screen to ensure it appears instantly.
+   - Verify that any animations or transitions don't cause performance issues.
+   - Test on lower-end devices to ensure performance is acceptable.
+
+4. **Platform-Specific Testing**:
+   - Test on multiple iOS devices and versions.
+   - Test on multiple Android devices and versions.
+   - Verify that platform-specific configurations are working correctly.
+
+5. **Edge Cases**:
+   - Test app launch with slow network conditions.
+   - Test app launch with device in low memory conditions.
+   - Verify behavior when the app is launched from different states (cold start vs warm start).
+
+Document all test results with screenshots from different devices to confirm proper implementation.
+
+# Subtasks:
+## 1. Create splash screen component based on Figma design [done]
+### Dependencies: None
+### Description: Implemented splash screen component following the Figma design at https://www.figma.com/design/nLXCeOfnjA8PwAoiaQSuZZ/BUSAN-CCC-APP?node-id=54-136&t=kuMY74aDVaUW66eh-4. Styled with NativeWind. [Updated: 5/19/2025]
+### Details:
+<info added on 2025-05-19T12:11:31.103Z>
+Created a splash screen component that displays when the app is loading. Used the logo.png asset as the main visual element centered on the screen. Applied styling with NativeWind to match the Figma design specifications. The splash screen automatically transitions to the main app interface once loading is complete. This component works in conjunction with the pin.png asset that was integrated in the next subtask.
+</info added on 2025-05-19T12:11:31.103Z>
+<info added on 2025-05-19T12:14:49.865Z>
+Configured the native splash screen directly in app.json instead of creating a separate React Native component. This approach is more efficient as it leverages the native splash screen capabilities of both iOS and Android platforms. Used the logo.png asset as the central visual element and set the background to the app's primary color as specified in the Figma design. This configuration ensures the splash screen appears immediately when the app is launched, providing a seamless user experience while the JavaScript bundle loads. The splash screen automatically fades out once the app is ready, transitioning smoothly to the main interface.
+</info added on 2025-05-19T12:14:49.865Z>
+
+## 2. Download and integrate pin.png image asset [done]
+### Dependencies: None
+### Description: Downloaded the pin.png image from the Figma design and added it to the project assets. Image path: src/assets/images/splash/pin.png
+### Details:
+<info added on 2025-05-19T12:11:44.279Z>
+Verified the image assets for the splash screen by comparing with the Figma design. Noticed that there might be confusion between pin.png and logo.png assets. Checked src/assets/images/splash/logo.png to ensure it matches the Figma design specifications. Confirmed that both pin.png and logo.png are correctly placed in the assets directory and match the design requirements for the splash screen. Updated image references in the splash screen component to ensure they point to the correct assets.
+</info added on 2025-05-19T12:11:44.279Z>
+
+## 3. Integrate splash screen component with App.tsx [done]
+### Dependencies: None
+### Description: Connected the created splash screen component (src/components/splash/SplashScreen.tsx) to App.tsx (src/app/App.tsx) to ensure it displays on app initialization while fonts are loading.
+### Details:
+<info added on 2025-05-19T12:15:20.502Z>
+After initial implementation with a custom splash screen component, we've refactored the approach to use expo-splash-screen instead. The custom SplashScreen.tsx component has been removed from App.tsx integration. Now, App.tsx leverages the native splash screen functionality provided by expo-splash-screen, which is configured through app.json settings. This approach provides better performance and a more seamless transition between the native splash screen and the loaded application. The expo-splash-screen package handles the showing and hiding of the splash screen automatically based on the loading state of resources like fonts.
+</info added on 2025-05-19T12:15:20.502Z>
+
+## 4. Configure native splash screen settings [done]
+### Dependencies: None
+### Description: Set up platform-specific configurations for Android and iOS to ensure proper splash screen display native-side if needed, beyond the Expo managed splash.
+### Details:
+
+
+## 5. Implement transition animations [done]
+### Dependencies: None
+### Description: Add smooth transitions or animations from splash screen to main application interface for better user experience.
+### Details:
+
+
+## 6. Test splash screen on multiple devices [done]
+### Dependencies: None
+### Description: Verify the splash screen displays correctly on various device sizes, orientations, and platforms (iOS and Android). Test visual appearance and functionality.
+### Details:
+
+

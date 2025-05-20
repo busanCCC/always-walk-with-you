@@ -1,39 +1,49 @@
 {
   "expo": {
-    "name": "my-expo-app",
-    "slug": "my-expo-app",
+    "name": "everyday-companion",
+    "slug": "everyday-companion",
+    "scheme": "everydaycompanionauth",
     "version": "1.0.0",
     "entryFile": "./src/app/App.tsx",
-
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./src/assets/images/logo.png"
     },
-
     "experiments": {
       "tsconfigPaths": true
     },
-
-    "plugins": [],
-
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-
-    "userInterfaceStyle": "light",
-
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+    "updates": {
+      "enabled": false
     },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#2584F0",
+          "imageWidth": 150,
+          "resizeMode": "cover"
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "splash": {
+      "backgroundColor": "#2584F0",
+      "image": "./src/assets/images/splash/logo.png",
+      "imageResizeMode": "cover"
+    },
+    "orientation": "portrait",
+    "icon": "./src/assets/images/logo.png",
+    "userInterfaceStyle": "light",
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.everydaycompanion"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "foregroundImage": "./src/assets/images/logo.png",
+        "backgroundColor": "#2584F0"
+      },
+      "package": "com.anonymous.everydaycompanion"
     }
   }
 }
