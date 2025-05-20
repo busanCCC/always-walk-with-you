@@ -2,16 +2,25 @@ module.exports = function (api) {
   api.cache(true);
 
   return {
-    presets: [['babel-preset-expo', { jsxImportSource: 'nativewind' }], 'nativewind/babel'],
+    presets: ['babel-preset-expo'],
     plugins: [
       [
-        'module-resolver', 
+        'module-resolver',
         {
-          root: ['./src'], 
+          root: ['./src'],
           alias: {
-            '@': './src', 
+            '@': './src',
           },
-          extensions: ['.js', '.jsx', '.ts', '.tsx', '.android.js', '.android.tsx', '.ios.js', '.ios.tsx']
+          extensions: [
+            '.js',
+            '.jsx',
+            '.ts',
+            '.tsx',
+            '.android.js',
+            '.android.tsx',
+            '.ios.js',
+            '.ios.tsx',
+          ],
         },
       ],
       [
@@ -25,7 +34,6 @@ module.exports = function (api) {
           allowUndefined: true,
         },
       ],
-      // plugins 배열의 다른 항목들이 있다면 여기에 유지됩니다.
     ],
   };
 };
