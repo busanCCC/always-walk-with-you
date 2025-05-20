@@ -30,7 +30,7 @@ alwaysApply: true
   - Avoid anonymous functions in renderItem or event handlers to prevent re-renders.
   
   UI and Styling:
-  -Use consistent styling with nativewind and Tailwind CSS utility classes for clarity and maintainability.
+  - Use consistent styling with nativewind and Tailwind CSS utility classes for clarity and maintainability.
   - Ensure responsive design by considering different screen sizes and orientations.
   - Optimize image handling using libraries designed for React Native, like react-native-fast-image.
   

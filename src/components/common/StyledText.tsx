@@ -1,23 +1,58 @@
 import React from 'react';
-import { Text as RNText, TextProps as RNTextProps } from 'react-native';
+import { Text as RNText, TextProps as RNTextProps, StyleSheet, TextStyle } from 'react-native';
+import theme, { FontStyleKeys, ColorKeys } from '@/constants/theme';
 
 interface StyledTextProps extends RNTextProps {
-  // 여기에 커스텀 Text 컴포넌트를 위한 추가적인 props를 정의할 수 있습니다.
-  // 예를 들어, 특정 폰트 두께를 위한 prop을 추가할 수도 있습니다.
-  // weight?: 'Regular' | 'Medium' | 'SemiBold' | 'Bold' | 'ExtraBold';
+  variant?: FontStyleKeys;
+  color?: string;
+  colorKey?: ColorKeys | string;
 }
 
-const StyledText: React.FC<StyledTextProps> = ({ className, style, children, ...props }) => {
-  // 기본적으로 font-sans 클래스를 적용합니다.
-  // NativeWind v4에서는 className prop을 직접 사용합니다.
-  const defaultClassName = 'font-sans'; // tailwind.config.ts의 sans에 Pretendard가 매핑되어 있어야 함
+const StyledText: React.FC<StyledTextProps> = ({
+  variant,
+  color,
+  colorKey,
+  style,
+  children,
+  ...props
+}) => {
+  const textStyle: TextStyle = {};
 
-  // 외부에서 전달된 className과 기본 className을 조합합니다.
-  // style prop도 함께 고려하여 병합합니다.
-  const combinedClassName = `${defaultClassName} ${className || ''}`.trim();
+  // 1. 기본 폰트 패밀리 설정
+  textStyle.fontFamily = theme.fonts.sans; // 기본은 Pretendard-Regular
+
+  // 2. Variant에 따른 스타일 적용
+  if (variant && theme.fontStyles[variant]) {
+    Object.assign(textStyle, theme.fontStyles[variant]);
+  }
+
+  // 3. Color 적용
+  if (color) {
+    textStyle.color = color;
+  } else if (colorKey) {
+    const keys = colorKey.split('.');
+    let resolvedColor: any = theme.colors;
+    for (const key of keys) {
+      if (resolvedColor && typeof resolvedColor === 'object' && key in resolvedColor) {
+        resolvedColor = resolvedColor[key];
+      } else {
+        resolvedColor = undefined;
+        break;
+      }
+    }
+    if (typeof resolvedColor === 'string') {
+      textStyle.color = resolvedColor;
+    } else {
+      textStyle.color = (theme.colors as any)[colorKey] || theme.colors.black;
+    }
+  } else {
+    textStyle.color = theme.colors.black;
+  }
+
+  const combinedStyle = StyleSheet.flatten([textStyle, style]);
 
   return (
-    <RNText className={combinedClassName} style={style} {...props}>
+    <RNText style={combinedStyle} {...props}>
       {children}
     </RNText>
   );

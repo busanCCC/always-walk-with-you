@@ -11,8 +11,7 @@ export const useAppFonts = () => {
     'Pretendard-Bold': require('@/assets/fonts/Pretendard-Bold.otf'),
     'Pretendard-ExtraBold': require('@/assets/fonts/Pretendard-ExtraBold.otf'),
     'Pretendard-Black': require('@/assets/fonts/Pretendard-Black.otf'),
-    // 필요에 따라 여기에 다른 폰트나 두께를 추가하세요.
   });
 
   return { fontsLoaded, fontError };
-}; 
+};
