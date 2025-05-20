@@ -1,0 +1,262 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+} from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import theme from '@/constants/theme';
+import { supabase } from '@/utils/supabaseClient';
+import { useAuthStore } from '@/store/authStore';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '@/navigation/AppNavigator';
+import StyledButton from '@/components/common/StyledButton';
+import CustomHeader from '@/components/common/CustomHeader';
+import CloseIcon from '@/assets/svg/close-icon.svg';
+
+type ProfileSetupScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'ProfileSetup'
+>;
+
+const ROLES = [
+  { label: '역할을 선택해주세요', value: null },
+  { label: '순장', value: 'leader' },
+  { label: '순원', value: 'member' },
+  { label: '간사', value: 'staff' },
+  { label: '외부인', value: 'guest' },
+];
+
+export default function ProfileSetupScreen() {
+  const user = useAuthStore((state) => state.user);
+  const setProfileCompleted = useAuthStore((state) => state.setProfileCompleted);
+  const signOut = useAuthStore((state) => state.signOut);
+  const navigation = useNavigation<ProfileSetupScreenNavigationProp>();
+
+  const [name, setName] = useState('');
+  const [campus, setCampus] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [role, setRole] = useState<string | null>(ROLES[0].value);
+  const [loading, setLoading] = useState(false);
+
+  const handleClose = () => {
+    signOut();
+    navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) {
+      Alert.alert('오류', '사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+      return;
+    }
+    if (!name || !campus || !studentId || !role) {
+      Alert.alert('정보 입력 필요', '이름, 캠퍼스, 학번, 역할은 필수 항목입니다.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const email = user.email;
+      const { error } = await supabase
+        .from('users')
+        .upsert(
+          {
+            id: user.id,
+            name,
+            email,
+            campus,
+            student_id: studentId,
+            profile_img: null,
+            role: role,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'id',
+          }
+        )
+        .select()
+        .single();
+
+      if (error) {
+        console.error('프로필 저장 오류:', error);
+        Alert.alert('오류', '프로필 저장 중 문제가 발생했습니다: ' + error.message);
+      } else {
+        setProfileCompleted(true);
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        });
+      }
+    } catch (e) {
+      console.error('프로필 저장 예외:', e);
+      Alert.alert('오류', '프로필 저장 중 예외가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const placeholderTextColor = theme.colors['grey-01'];
+  const defaultTextColor = theme.colors['dark-grey-02'];
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <CustomHeader
+        title="회원가입"
+        showBackButton={false}
+        headerRight={
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <CloseIcon width={20} height={20} fill={theme.colors['dark-grey-02']} />
+          </TouchableOpacity>
+        }
+        noBorder
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled">
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>매일 동행으로</Text>
+            <Text style={styles.headerTitle}>하나님과의 동행을 경험해요</Text>
+          </View>
+
+          <View style={styles.formContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="이름"
+              value={name}
+              onChangeText={setName}
+              placeholderTextColor={placeholderTextColor}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="캠퍼스"
+              value={campus}
+              onChangeText={setCampus}
+              placeholderTextColor={placeholderTextColor}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="학번"
+              value={studentId}
+              onChangeText={setStudentId}
+              keyboardType="number-pad"
+              placeholderTextColor={placeholderTextColor}
+            />
+
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={role}
+                onValueChange={(itemValue: string | null) => setRole(itemValue)}
+                style={[
+                  styles.picker,
+                  { color: role === null ? placeholderTextColor : defaultTextColor },
+                ]}
+                itemStyle={styles.pickerItem}>
+                {ROLES.map((r) => (
+                  <Picker.Item key={r.value || 'placeholder'} label={r.label} value={r.value} />
+                ))}
+              </Picker>
+            </View>
+
+            {/* <TextInput
+              style={styles.input}
+              placeholder="순명 (선택)"
+              value={soonName}
+              onChangeText={setSoonName}
+              placeholderTextColor={placeholderTextColor}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="전화번호 (선택) 예: 010-1234-5678"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+              placeholderTextColor={placeholderTextColor}
+            /> */}
+          </View>
+        </ScrollView>
+        <View style={styles.buttonContainer}>
+          <StyledButton
+            title={loading ? '저장 중...' : '확인'}
+            onPress={handleSaveProfile}
+            disabled={loading || !name || !campus || !studentId || !role}
+            loading={loading}
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.white,
+  },
+  closeButton: {
+    padding: theme.spacing['2'],
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: theme.spacing['5'],
+  },
+  headerTextContainer: {
+    marginTop: theme.spacing['6'],
+    marginBottom: theme.spacing['6'],
+    alignItems: 'flex-start',
+  },
+  headerTitle: {
+    fontFamily: theme.fontStyles['2xl-tight'].fontFamily,
+    fontSize: theme.fontStyles['2xl-tight'].fontSize,
+    lineHeight: theme.fontStyles['2xl-tight'].lineHeight,
+    color: theme.colors['dark-grey-02'],
+  },
+  infoText: {
+    fontFamily: theme.fontStyles['base-normal'].fontFamily,
+    fontSize: theme.fontStyles['sm-normal'].fontSize,
+    color: theme.colors['grey-02'],
+    marginBottom: theme.spacing['6'],
+    lineHeight: theme.fontStyles['sm-normal'].lineHeight,
+  },
+  formContainer: {
+    flex: 1,
+  },
+  input: {
+    fontFamily: theme.fontStyles['base-normal'].fontFamily,
+    fontSize: theme.fontStyles['base-normal'].fontSize,
+    color: theme.colors['dark-grey-02'],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors['light-grey-02'],
+    paddingVertical: theme.spacing['3'],
+    marginBottom: theme.spacing['5'],
+  },
+  pickerContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors['light-grey-02'],
+  },
+  picker: {
+    fontFamily: theme.fontStyles['base-normal'].fontFamily,
+    fontSize: theme.fontStyles['base-normal'].fontSize,
+    marginLeft: -theme.spacing['3'],
+  },
+  pickerItem: {
+    fontFamily: theme.fontStyles['base-normal'].fontFamily,
+    fontSize: theme.fontStyles['base-normal'].fontSize,
+    color: theme.colors['dark-grey-02'],
+  },
+  buttonContainer: {
+    paddingHorizontal: theme.spacing['5'],
+    paddingBottom: Platform.OS === 'ios' ? theme.spacing['5'] : theme.spacing['4'],
+    paddingTop: theme.spacing['2.5'],
+  },
+});
