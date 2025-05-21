@@ -8,7 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuthStore } from '@/store/authStore';
 import LoginScreen from '@/screens/LoginScreen';
 import ProfileSetupScreen from '@/screens/ProfileSetupScreen';
-import ActualMyPageScreen from '@/screens/MyPageScreen';
+import MyPageScreen from '@/screens/MyPageScreen';
 import { Text, View, TouchableOpacity } from 'react-native';
 import theme from '@/constants/theme';
 
@@ -16,6 +16,10 @@ import HomeIcon from '@/assets/svg/home-icon.svg';
 import DiaryCalendarIcon from '@/assets/svg/diary_calendar-icon.svg';
 import SoonIcon from '@/assets/svg/soon-icon.svg';
 import UserIcon from '@/assets/svg/user-icon.svg';
+import HomeScreen from '@/screens/HomeScreen';
+import WebViewScreen from '@/screens/WebViewScreen';
+import HeaderLogo from '@/components/common/HeaderLogo';
+import CustomHeader from '@/components/common/CustomHeader';
 
 // 스크린 타입 정의
 export type AuthStackParamList = {
@@ -30,10 +34,11 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
-  Auth: undefined; // AuthStack을 의미
-  Main: undefined; // MainTabs를 의미
-  ProfileSetup: undefined; // ProfileSetupScreen 추가
-  Loading: undefined; // 로딩 스크린 (선택 사항)
+  Auth: undefined;
+  Main: undefined;
+  ProfileSetup: undefined;
+  Loading: undefined;
+  WebView: { title: string; url: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -44,7 +49,6 @@ const commonScreenOptions: NativeStackNavigationOptions = {
   headerShown: false,
 };
 
-// ProfileSetupScreen 헤더 옵션 - 이제 CustomHeader를 사용하므로 headerShown: false로 변경
 const getProfileSetupScreenOptions = (
   navigation: any,
   signOut: () => void
@@ -52,7 +56,14 @@ const getProfileSetupScreenOptions = (
   headerShown: false,
 });
 
-// 임시 스크린
+const webViewScreenOptions = ({ route }: any): NativeStackNavigationOptions => ({
+  headerShown: true,
+  title: route.params?.title || '웹뷰',
+  headerTitleStyle: {
+    fontFamily: theme.fonts.semiBold,
+  },
+});
+
 function TempScreen({ routeName }: { routeName: string }) {
   const signOut = useAuthStore((state) => state.signOut);
 
@@ -76,10 +87,8 @@ function TempScreen({ routeName }: { routeName: string }) {
 }
 
 // 각 탭에 대한 실제 스크린 컴포넌트 (또는 TempScreen 사용)
-const HomeScreen = () => <TempScreen routeName="홈" />;
 const DiaryScreen = () => <TempScreen routeName="영성일기" />;
 const SoonListScreen = () => <TempScreen routeName="순" />;
-const MyPageScreen = () => <TempScreen routeName="마이페이지" />;
 
 function AuthScreens() {
   return (
@@ -93,7 +102,6 @@ function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
         tabBarActiveTintColor: theme.colors.primary.DEFAULT,
         tabBarInactiveTintColor: theme.colors['grey-02'],
         tabBarStyle: {
@@ -105,7 +113,7 @@ function MainTabs() {
         },
         tabBarIcon: ({ focused, color, size }) => {
           let IconComponent;
-          const iconSize = size * 0.9; // 아이콘 크기 조정
+          const iconSize = size * 0.9;
 
           if (route.name === '홈') {
             IconComponent = HomeIcon;
@@ -121,10 +129,17 @@ function MainTabs() {
           ) : null;
         },
       })}>
-      <Tab.Screen name="홈" component={HomeScreen} />
-      <Tab.Screen name="영성일기" component={DiaryScreen} />
-      <Tab.Screen name="순" component={SoonListScreen} />
-      <Tab.Screen name="마이페이지" component={ActualMyPageScreen} />
+      <Tab.Screen
+        name="홈"
+        component={HomeScreen}
+        options={{
+          headerShown: true,
+          header: () => <CustomHeader headerLeft={<HeaderLogo />} noBorder={true} />,
+        }}
+      />
+      <Tab.Screen name="영성일기" component={DiaryScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="순" component={SoonListScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="마이페이지" component={MyPageScreen} options={{ headerShown: false }} />
     </Tab.Navigator>
   );
 }
@@ -153,36 +168,48 @@ function LoadingScreen() {
 export default function AppNavigator() {
   const { session, loading, isInitialized, profileCompleted, signOut } = useAuthStore();
 
-  console.log(
-    '[AppNavigator] States: loading:',
-    loading,
-    'isInitialized:',
-    isInitialized,
-    'session:',
-    !!session,
-    'profileCompleted:',
-    profileCompleted
-  );
-
   if (loading || !isInitialized) {
     return <LoadingScreen />;
   }
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={commonScreenOptions}>
+      <Stack.Navigator
+        initialRouteName={session ? (profileCompleted ? 'Main' : 'ProfileSetup') : 'Auth'}>
         {session ? (
           profileCompleted ? (
-            <Stack.Screen name="Main" component={MainTabs} />
+            <>
+              <Stack.Screen name="Main" component={MainTabs} options={commonScreenOptions} />
+              <Stack.Screen
+                name="ProfileSetup"
+                component={ProfileSetupScreen}
+                options={({ navigation }) => getProfileSetupScreenOptions(navigation, signOut)}
+              />
+              <Stack.Screen
+                name="WebView"
+                component={WebViewScreen}
+                options={webViewScreenOptions}
+              />
+            </>
           ) : (
-            <Stack.Screen
-              name="ProfileSetup"
-              component={ProfileSetupScreen}
-              options={({ navigation }) => getProfileSetupScreenOptions(navigation, signOut)}
-            />
+            <>
+              <Stack.Screen
+                name="ProfileSetup"
+                component={ProfileSetupScreen}
+                options={({ navigation }) => getProfileSetupScreenOptions(navigation, signOut)}
+              />
+              <Stack.Screen
+                name="WebView"
+                component={WebViewScreen}
+                options={webViewScreenOptions}
+              />
+            </>
           )
         ) : (
-          <Stack.Screen name="Auth" component={AuthScreens} />
+          <>
+            <Stack.Screen name="Auth" component={AuthScreens} options={commonScreenOptions} />
+            <Stack.Screen name="WebView" component={WebViewScreen} options={webViewScreenOptions} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
