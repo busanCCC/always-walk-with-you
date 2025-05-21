@@ -1,7 +1,7 @@
 # Task ID: 16
 # Title: 오류 처리 및 예외 상황 관리
 # Status: pending
-# Dependencies: 2, 3, 4
+# Dependencies: 2, 3
 # Priority: medium
 # Description: 앱 전반의 오류 처리 및 예외 상황을 관리하는 시스템을 구현합니다.
 # Details:

@@ -33,7 +33,7 @@
         1,
         2
       ],
-      "status": "pending",
+      "status": "done",
       "subtasks": [
         {
           "id": 1,
@@ -63,7 +63,7 @@
             2
           ],
           "details": "AuthState 인터페이스 구현, useAuthStore 생성, 로그인/로그아웃 함수 구현, 사용자 정보 및 세션 상태 관리, 로딩 상태 처리, 프로필 업데이트 함수 구현, 인증 상태 지속성 관리",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "로그인, 로그아웃, 프로필 업데이트 기능이 정상적으로 작동하는지 확인하고 상태 변경이 UI에 올바르게 반영되는지 테스트"
         },
         {
@@ -74,35 +74,19 @@
             3
           ],
           "details": "사용자 프로필 테이블 설계, RLS(Row Level Security) 설정, 프로필 데이터 CRUD 작업 구현, 프로필 정보 유효성 검사, 프로필 정보 동기화 기능 구현",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "프로필 정보 저장, 조회, 업데이트 기능이 정상적으로 작동하는지 확인하고 데이터베이스에 올바르게 반영되는지 테스트"
         },
         {
           "id": 5,
           "title": "프로필 이미지 업로드 기능 구현",
           "description": "Supabase Storage를 활용하여 사용자 프로필 이미지 업로드 및 관리 기능을 구현합니다.",
-          "dependencies": [
-            4
-          ],
+          "dependencies": [],
           "details": "Supabase Storage 버킷 생성 및 권한 설정, 이미지 선택 및 크롭 기능 구현, 이미지 업로드 및 URL 저장 기능 구현, 이미지 캐싱 및 최적화, 프로필 이미지 표시 컴포넌트 구현",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "이미지 선택, 업로드, 표시 기능이 정상적으로 작동하는지 확인하고 Storage에 올바르게 저장되는지 테스트"
         }
       ]
-    },
-    {
-      "id": 4,
-      "title": "네비게이션 및 기본 UI 컴포넌트 구현",
-      "description": "앱의 기본 네비게이션 구조와 공통 UI 컴포넌트를 구현합니다.",
-      "details": "1. 네비게이션 구조 설정:\n```typescript\nconst BottomTab = createBottomTabNavigator();\n\nfunction AppNavigator() {\n  return (\n    <BottomTab.Navigator>\n      <BottomTab.Screen name=\"Home\" component={HomeScreen} />\n      <BottomTab.Screen name=\"Group\" component={GroupScreen} />\n      <BottomTab.Screen name=\"Journal\" component={JournalScreen} />\n      <BottomTab.Screen name=\"MyPage\" component={MyPageScreen} />\n    </BottomTab.Navigator>\n  );\n}\n```\n2. 공통 UI 컴포넌트 구현:\n   - Button, Card, Input, Modal, BottomSheet 등\n   - 토스 스타일의 직관적인 문구 및 배치 적용\n3. 테마 및 스타일 시스템 구축 (Nativewind 활용)\n4. 로딩 및 에러 상태 처리 컴포넌트",
-      "testStrategy": "1. 네비게이션 흐름 테스트\n2. 컴포넌트 렌더링 및 스타일 테스트\n3. 반응형 디자인 테스트\n4. 접근성 테스트",
-      "priority": "high",
-      "dependencies": [
-        2,
-        3
-      ],
-      "status": "pending",
-      "subtasks": []
     },
     {
       "id": 5,
@@ -112,10 +96,9 @@
       "testStrategy": "1. 홈 화면 렌더링 테스트\n2. 주간 달력 기능 테스트\n3. 데이터 로딩 및 표시 테스트\n4. 사용자 인터랙션 테스트",
       "priority": "high",
       "dependencies": [
-        3,
-        4
+        3
       ],
-      "status": "pending",
+      "status": "in-progress",
       "subtasks": []
     },
     {
@@ -126,8 +109,7 @@
       "testStrategy": "1. 캘린더 렌더링 및 날짜 선택 테스트\n2. 일기 작성 날짜 마커 표시 테스트\n3. 날짜 이동 및 월 변경 테스트\n4. 데이터 로딩 상태 테스트",
       "priority": "medium",
       "dependencies": [
-        1,
-        4
+        1
       ],
       "status": "pending",
       "subtasks": []
@@ -170,8 +152,7 @@
       "priority": "high",
       "dependencies": [
         1,
-        3,
-        4
+        3
       ],
       "status": "pending",
       "subtasks": []
@@ -256,8 +237,7 @@
       "priority": "medium",
       "dependencies": [
         2,
-        3,
-        4
+        3
       ],
       "status": "pending",
       "subtasks": []
