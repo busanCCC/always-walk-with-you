@@ -1,7 +1,7 @@
 # Task ID: 6
 # Title: 영성일기 캘린더 구현
 # Status: pending
-# Dependencies: 1, 4
+# Dependencies: 1
 # Priority: medium
 # Description: 월간 캘린더 뷰와 일기 작성 여부를 시각화하는 기능을 구현합니다.
 # Details:

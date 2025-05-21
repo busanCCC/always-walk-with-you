@@ -1,7 +1,7 @@
 # Task ID: 5
 # Title: 홈 화면 구현
-# Status: pending
-# Dependencies: 3, 4
+# Status: in-progress
+# Dependencies: 3
 # Priority: high
 # Description: 주간 달력, 오늘의 말씀, 광고, 주보 등을 포함한 홈 화면을 구현합니다.
 # Details:
