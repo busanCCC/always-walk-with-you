@@ -7,8 +7,11 @@ import { useAppFonts } from '@/hooks/useAppFonts';
 import { useAuthStore } from '@/store/authStore';
 import AppNavigator from '@/navigation/AppNavigator';
 import { View, StyleSheet } from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient();
 
 export default function App() {
   const { isInitialized, initializeAuth } = useAuthStore();
@@ -41,11 +44,13 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <View style={styles.appContainer} onLayout={onLayoutRootView}>
-        <AppNavigator />
-      </View>
-    </SafeAreaProvider>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <View style={styles.appContainer} onLayout={onLayoutRootView}>
+          <AppNavigator />
+        </View>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }
 
