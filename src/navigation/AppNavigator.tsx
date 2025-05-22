@@ -26,7 +26,7 @@ import { RootStackParamList } from './types';
 import { AuthNavigator } from './navigators/AuthNavigator';
 import { MainTabNavigator } from './navigators/MainTabNavigator';
 import { LoadingScreen } from './components/LoadingScreen';
-import GroupDetailScreen from '@/screens/group/GroupDetailScreen';
+import GroupDetailScreen from '@/screens/GroupDetailScreen';
 
 // 스크린 타입 정의
 export type AuthStackParamList = {

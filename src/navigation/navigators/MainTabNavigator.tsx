@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '@/screens/HomeScreen';
 import SoonScreen from '@/screens/SoonScreen';
 import MyPageScreen from '@/screens/MyPageScreen';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import theme from '@/constants/theme';
 import { MainTabParamList } from '../types';
 import HomeIcon from '@/assets/svg/home-icon.svg';
