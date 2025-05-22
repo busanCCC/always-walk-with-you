@@ -21,7 +21,7 @@ import ChevronRightIcon from '@/assets/svg/chevron-right.svg';
 import PrayerIcon from '@/assets/svg/user-icon.svg';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@/navigation/AppNavigator';
+import { RootStackParamList } from '@/navigation/types';
 
 interface WeekDayData {
   day: string;
@@ -99,7 +99,7 @@ const HomeScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.weeklyDiarySection}>
           <Text style={styles.sectionTitle}>주간 영성 일기</Text>
@@ -135,15 +135,15 @@ const HomeScreen = () => {
         </TouchableOpacity>
 
         {/* 배너 */}
-        <TouchableOpacity onPress={handleBannerPress} activeOpacity={0.8}>
-          <View style={styles.banner}>
+        <View style={styles.banner}>
+          <TouchableOpacity onPress={handleBannerPress} activeOpacity={0.8}>
             <View style={styles.bannerContent}>
               <Text style={styles.bannerSubtitle}>2025 CCC 여름수련회, 평창에서 만나요</Text>
               <Text style={styles.bannerTitle}>Seize Your Season</Text>
             </View>
             <Image source={require('@/assets/images/banner.png')} style={styles.bannerImage} />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.devotionalSection}>
           <Text style={styles.sectionTitle}>오늘의 풍성한 삶</Text>
@@ -219,7 +219,7 @@ const HomeScreen = () => {
         {/* 하단 여백 */}
         <View style={{ height: 60 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     marginTop: spacing['4'],
   },
   sectionTitle: {
-    ...fontStyles['base-tight'],
+    ...fontStyles['xl-tight'],
     color: colors['grey-04'],
     marginBottom: spacing['3'],
   },
@@ -335,7 +335,8 @@ const styles = StyleSheet.create({
     color: colors.primary.DEFAULT,
   },
   devotionalSection: {
-    marginBottom: spacing['5'],
+    marginTop: spacing['2'],
+    marginBottom: spacing['6'],
   },
   devotionalCard: {
     backgroundColor: colors['light-grey-01'],
