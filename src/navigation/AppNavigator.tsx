@@ -11,15 +11,22 @@ import ProfileSetupScreen from '@/screens/ProfileSetupScreen';
 import MyPageScreen from '@/screens/MyPageScreen';
 import { Text, View, TouchableOpacity } from 'react-native';
 import theme from '@/constants/theme';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import HomeIcon from '@/assets/svg/home-icon.svg';
 import DiaryCalendarIcon from '@/assets/svg/diary_calendar-icon.svg';
 import SoonIcon from '@/assets/svg/soon-icon.svg';
 import UserIcon from '@/assets/svg/user-icon.svg';
 import HomeScreen from '@/screens/HomeScreen';
+import SoonScreen from '@/screens/SoonScreen';
 import WebViewScreen from '@/screens/WebViewScreen';
 import HeaderLogo from '@/components/common/HeaderLogo';
 import CustomHeader from '@/components/common/CustomHeader';
+import { RootStackParamList } from './types';
+import { AuthNavigator } from './navigators/AuthNavigator';
+import { MainTabNavigator } from './navigators/MainTabNavigator';
+import { LoadingScreen } from './components/LoadingScreen';
+import GroupDetailScreen from '@/screens/GroupDetailScreen';
 
 // 스크린 타입 정의
 export type AuthStackParamList = {
@@ -31,14 +38,6 @@ export type MainTabParamList = {
   영성일기: undefined;
   순: undefined;
   마이페이지: undefined;
-};
-
-export type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
-  ProfileSetup: undefined;
-  Loading: undefined;
-  WebView: { title: string; url: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -86,9 +85,7 @@ function TempScreen({ routeName }: { routeName: string }) {
   );
 }
 
-// 각 탭에 대한 실제 스크린 컴포넌트 (또는 TempScreen 사용)
 const DiaryScreen = () => <TempScreen routeName="영성일기" />;
-const SoonListScreen = () => <TempScreen routeName="순" />;
 
 function AuthScreens() {
   return (
@@ -138,30 +135,27 @@ function MainTabs() {
         }}
       />
       <Tab.Screen name="영성일기" component={DiaryScreen} options={{ headerShown: false }} />
-      <Tab.Screen name="순" component={SoonListScreen} options={{ headerShown: false }} />
+      <Tab.Screen
+        name="순"
+        component={SoonScreen}
+        options={{
+          headerShown: true,
+          header: () => (
+            <CustomHeader
+              headerLeft={<HeaderLogo />}
+              headerRight={
+                <TouchableOpacity
+                  style={{ padding: theme.spacing[2], marginLeft: theme.spacing[2] }}>
+                  <Ionicons name="add" size={24} color={theme.colors.primary.DEFAULT} />
+                </TouchableOpacity>
+              }
+              noBorder={true}
+            />
+          ),
+        }}
+      />
       <Tab.Screen name="마이페이지" component={MyPageScreen} options={{ headerShown: false }} />
     </Tab.Navigator>
-  );
-}
-
-function LoadingScreen() {
-  return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: theme.colors.white,
-      }}>
-      <Text
-        style={{
-          fontFamily: theme.fonts.regular,
-          fontSize: 18,
-          color: theme.colors.primary.DEFAULT,
-        }}>
-        로딩 중...
-      </Text>
-    </View>
   );
 }
 
@@ -179,7 +173,11 @@ export default function AppNavigator() {
         {session ? (
           profileCompleted ? (
             <>
-              <Stack.Screen name="Main" component={MainTabs} options={commonScreenOptions} />
+              <Stack.Screen
+                name="Main"
+                component={MainTabNavigator}
+                options={commonScreenOptions}
+              />
               <Stack.Screen
                 name="ProfileSetup"
                 component={ProfileSetupScreen}
@@ -190,6 +188,7 @@ export default function AppNavigator() {
                 component={WebViewScreen}
                 options={webViewScreenOptions}
               />
+              <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
             </>
           ) : (
             <>
@@ -203,12 +202,14 @@ export default function AppNavigator() {
                 component={WebViewScreen}
                 options={webViewScreenOptions}
               />
+              <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
             </>
           )
         ) : (
           <>
-            <Stack.Screen name="Auth" component={AuthScreens} options={commonScreenOptions} />
+            <Stack.Screen name="Auth" component={AuthNavigator} options={commonScreenOptions} />
             <Stack.Screen name="WebView" component={WebViewScreen} options={webViewScreenOptions} />
+            <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
           </>
         )}
       </Stack.Navigator>
