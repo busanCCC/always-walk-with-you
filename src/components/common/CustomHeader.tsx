@@ -67,10 +67,8 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
     return <View style={styles.placeholder} />; // 공간 차지 (정렬 위함)
   };
 
-  // 1. 헤더 콘텐츠 높이 정의
   const headerContentHeight = 54; // 예시: 실제 아이콘과 제목 등이 들어갈 영역의 높이
 
-  // 2. 플랫폼별 상단 패딩 계산
   const safeAreaTopPadding = Platform.select({
     ios: insets.top,
     android: StatusBar.currentHeight || 0, // StatusBar.currentHeight가 undefined일 경우 0으로 처리
