@@ -249,7 +249,7 @@ const GroupDetailScreen = () => {
                                     .toUpperCase()}
                                 </Text>
                               )}
-                            </View>{' '}
+                            </View>
                             <View style={styles.memberInfo}>
                               <Text style={styles.memberName}>
                                 {member.users.name || member.users.email || '이름 없음'}

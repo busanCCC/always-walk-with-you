@@ -29,7 +29,6 @@ import { LoadingScreen } from './components/LoadingScreen';
 import GroupDetailScreen from '@/screens/GroupDetailScreen';
 import JournalCalendarScreen from '@/screens/JournalCalendarScreen';
 import JournalDetailScreen from '@/screens/JournalDetailScreen';
-
 // 스크린 타입 정의
 export type AuthStackParamList = {
   Login: undefined;
