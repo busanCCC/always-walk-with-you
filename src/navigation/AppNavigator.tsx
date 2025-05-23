@@ -26,7 +26,9 @@ import { RootStackParamList } from './types';
 import { AuthNavigator } from './navigators/AuthNavigator';
 import { MainTabNavigator } from './navigators/MainTabNavigator';
 import { LoadingScreen } from './components/LoadingScreen';
-import GroupDetailScreen from '@/screens/group/GroupDetailScreen';
+import GroupDetailScreen from '@/screens/GroupDetailScreen';
+import JournalCalendarScreen from '@/screens/JournalCalendarScreen';
+import JournalDetailScreen from '@/screens/JournalDetailScreen';
 
 // 스크린 타입 정의
 export type AuthStackParamList = {
@@ -189,6 +191,16 @@ export default function AppNavigator() {
                 options={webViewScreenOptions}
               />
               <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
+              <Stack.Screen
+                name="JournalCalendar"
+                component={JournalCalendarScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="JournalDetail"
+                component={JournalDetailScreen}
+                options={{ headerShown: false }}
+              />
             </>
           ) : (
             <>
@@ -197,12 +209,6 @@ export default function AppNavigator() {
                 component={ProfileSetupScreen}
                 options={({ navigation }) => getProfileSetupScreenOptions(navigation, signOut)}
               />
-              <Stack.Screen
-                name="WebView"
-                component={WebViewScreen}
-                options={webViewScreenOptions}
-              />
-              <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
             </>
           )
         ) : (
