@@ -44,7 +44,6 @@ const GroupDetailScreen = () => {
     description: '',
   });
 
-  // Animated value for drawer animation
   const drawerTranslateX = useRef(new Animated.Value(DRAWER_WIDTH)).current;
 
   // API 호출 훅

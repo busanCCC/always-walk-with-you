@@ -59,3 +59,53 @@ export const fetchJournalsByDateRange = async (
     return [];
   }
 };
+
+/**
+ * 특정 ID의 영성일기 상세 정보를 가져옵니다.
+ * @param journalId 조회할 영성일기의 ID
+ */
+export const fetchJournalById = async (journalId: string): Promise<Journal> => {
+  if (!journalId) {
+    console.error('Journal ID not provided, cannot fetch journal detail');
+    throw new Error('Journal ID is required.');
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('journals')
+      .select(
+        `
+        *,
+        user_id,
+        emotions (*)
+      `
+      )
+      .eq('id', journalId)
+      .single(); // 단일 행을 가져옴
+
+    if (error) {
+      console.error('Error fetching journal by ID:', error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('Journal not found.');
+    }
+
+    const rawData = data as RawJournalData;
+
+    const journalWithEmotion: Journal = {
+      ...rawData,
+      emotion: Array.isArray(rawData.emotions) ? rawData.emotions[0] : rawData.emotions,
+    };
+
+    return journalWithEmotion;
+  } catch (err) {
+    console.error('An unexpected error occurred while fetching journal detail:', err);
+    // 에러 타입에 따라 적절한 에러 객체를 throw 하거나, null 또는 undefined 반환 후 UI에서 처리
+    if (err instanceof Error) {
+      throw err;
+    }
+    throw new Error('Failed to fetch journal detail.');
+  }
+};
