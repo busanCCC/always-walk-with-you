@@ -20,4 +20,6 @@ export type RootStackParamList = {
     groupId: string;
     groupName: string;
   };
+  JournalCalendar: undefined;
+  JournalDetail: { journalId: string };
 };

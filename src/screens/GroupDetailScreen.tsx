@@ -44,7 +44,6 @@ const GroupDetailScreen = () => {
     description: '',
   });
 
-  // Animated value for drawer animation
   const drawerTranslateX = useRef(new Animated.Value(DRAWER_WIDTH)).current;
 
   // API 호출 훅
@@ -250,7 +249,7 @@ const GroupDetailScreen = () => {
                                     .toUpperCase()}
                                 </Text>
                               )}
-                            </View>
+                            </View>{' '}
                             <View style={styles.memberInfo}>
                               <Text style={styles.memberName}>
                                 {member.users.name || member.users.email || '이름 없음'}

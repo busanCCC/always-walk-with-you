@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '@/screens/HomeScreen';
 import SoonScreen from '@/screens/SoonScreen';
 import MyPageScreen from '@/screens/MyPageScreen';
+import JournalCalendarScreen from '@/screens/JournalCalendarScreen';
 import { View, Text, TouchableOpacity } from 'react-native';
 import theme from '@/constants/theme';
 import { MainTabParamList } from '../types';
@@ -17,15 +18,14 @@ import { AddGroupButton } from '../components/HeaderButtons';
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // 임시 화면 컴포넌트
-function TempScreen({ routeName }: { routeName: string }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontFamily: theme.fonts.regular }}>{routeName} Screen</Text>
-    </View>
-  );
-}
-
-const DiaryScreen = () => <TempScreen routeName="영성일기" />;
+// function TempScreen({ routeName }: { routeName: string }) {
+//   return (
+//     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+//       <Text style={{ fontFamily: theme.fonts.regular }}>{routeName} Screen</Text>
+//     </View>
+//   );
+// }
+// const DiaryScreen = () => <TempScreen routeName="영성일기" />;
 
 export function MainTabNavigator() {
   return (
@@ -67,7 +67,14 @@ export function MainTabNavigator() {
         }}
       />
 
-      <Tab.Screen name="영성일기" component={DiaryScreen} options={{ headerShown: false }} />
+      <Tab.Screen
+        name="영성일기"
+        component={JournalCalendarScreen}
+        options={{
+          headerShown: true,
+          header: () => <CustomHeader headerLeft={<HeaderLogo />} noBorder={true} />,
+        }}
+      />
 
       <Tab.Screen
         name="순"
