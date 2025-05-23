@@ -112,7 +112,62 @@
         1
       ],
       "status": "pending",
-      "subtasks": []
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "react-native-calendars 기본 설정 및 월간 캘린더 렌더링",
+          "description": "react-native-calendars 라이브러리를 설치하고, 기본적인 월간 캘린더를 화면에 렌더링합니다.",
+          "details": "라이브러리 import 및 Calendar 컴포넌트를 사용하여 화면에 표시하는 초기 작업을 수행합니다. 사용자가 제공한 Figma 디자인을 참고하여 기본 스타일을 적용합니다.",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 6
+        },
+        {
+          "id": 2,
+          "title": "캘린더 헤더 구현 (연도/월 표시 및 월 이동 기능)",
+          "description": "캘린더 상단에 현재 연도와 월을 표시하고, 좌우 화살표 아이콘을 통해 월을 이동하는 기능을 구현합니다.",
+          "details": "Figma 디자인을 참고하여 연/월 표시 스타일을 적용하고, react-native-calendars 라이브러리의 월 이동 기능을 활용합니다.",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 6
+        },
+        {
+          "id": 3,
+          "title": "일기 데이터 연동 및 날짜별 커스텀 마커 표시",
+          "description": "Supabase에서 해당 월의 일기 작성 데이터(날짜 및 emotion_id)를 가져와, 날짜별로 커스텀 마커(감정 이모티콘 또는 기본 마커, 오늘 날짜 강조)를 표시합니다.",
+          "details": "API를 통해 emotion_id를 받아오고, 이를 기반으로 적절한 이모티콘 이미지를 렌더링합니다. 오늘 날짜는 Figma 디자인에 따라 특별히 강조합니다. 일기가 없는 날은 기본 마커를 표시합니다.",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 6
+        },
+        {
+          "id": 4,
+          "title": "날짜 선택 시 일기 상세/작성 화면 이동 로직 구현",
+          "description": "캘린더에서 특정 날짜를 선택했을 때, 해당 날짜의 일기 상세 화면으로 이동하거나 일기가 없는 경우 새 일기 작성 화면으로 이동하는 네비게이션 로직을 구현합니다.",
+          "details": "선택된 날짜에 일기 데이터가 있는지 확인하고, 조건에 따라 적절한 화면으로 네비게이트합니다.",
+          "status": "pending",
+          "dependencies": [],
+          "parentTaskId": 6
+        },
+        {
+          "id": 5,
+          "title": "FAB (일기 작성 버튼) 구현 및 네비게이션 연결",
+          "description": "화면 우측 하단에 '+' 아이콘이 있는 FAB(Floating Action Button)를 Figma 디자인에 따라 구현하고, 새 일기 작성 화면으로 이동하는 네비게이션을 연결합니다.",
+          "details": "FAB 컴포넌트를 만들고 스타일링하며, onPress 이벤트를 통해 네비게이션을 트리거합니다.",
+          "status": "pending",
+          "dependencies": [],
+          "parentTaskId": 6
+        },
+        {
+          "id": 6,
+          "title": "필요한 감정 이모티콘 에셋 다운로드 및 통합",
+          "description": "Figma 디자인에 사용된 다양한 감정 이모티콘(신남, 기분 안 좋음 등) 이미지들을 SVG 또는 PNG 형태로 다운로드하여 프로젝트 에셋으로 포함시키고, 이를 캘린더 마커에 사용할 수 있도록 준비합니다.",
+          "details": "Figma에서 이미지 에셋을 추출하고, src/assets/images/emotions/ 와 같은 적절한 경로에 저장합니다. 이미지 사용을 위한 컴포넌트나 로직을 준비할 수 있습니다.",
+          "status": "pending",
+          "dependencies": [],
+          "parentTaskId": 6
+        }
+      ]
     },
     {
       "id": 7,
@@ -146,15 +201,15 @@
     {
       "id": 9,
       "title": "순 그룹 관리 기능 구현",
-      "description": "순 그룹 생성, 조회, 초대 등의 기능을 구현합니다.",
-      "details": "1. 순 그룹 목록 화면 구현:\n```typescript\nfunction GroupListScreen() {\n  const { data: groups, isLoading } = useQuery(\n    ['groups'],\n    fetchUserGroups\n  );\n  \n  return (\n    <View>\n      <FlatList\n        data={groups}\n        renderItem={({ item }) => <GroupCard group={item} />}\n        ListHeaderComponent={<CreateGroupButton />}\n      />\n    </View>\n  );\n}\n```\n2. 순 그룹 생성 기능:\n   - 그룹명, 캠퍼스 입력\n   - 초기 멤버 추가\n3. 그룹 초대 기능:\n   - 이메일 또는 학번으로 검색\n   - 초대 링크 생성 (선택적)\n4. 그룹 상세 화면:\n   - 멤버 목록\n   - 공유된 일기 및 기도제목 목록\n   - 그룹 설정 (관리자용)",
-      "testStrategy": "1. 그룹 목록 로딩 및 표시 테스트\n2. 그룹 생성 및 초대 기능 테스트\n3. 권한에 따른 기능 접근 테스트\n4. 그룹 데이터 업데이트 테스트",
-      "priority": "high",
+      "description": "순 그룹 생성, 조회, 수정, 삭제 기능을 구현합니다. 순 그룹 초대 기능은 현재 보류 상태입니다.",
+      "status": "done",
       "dependencies": [
         1,
         3
       ],
-      "status": "pending",
+      "priority": "high",
+      "details": "1. 순 그룹 목록 화면 구현:\n```typescript\nfunction GroupListScreen() {\n  const { data: groups, isLoading } = useQuery(\n    ['groups'],\n    fetchUserGroups\n  );\n  \n  return (\n    <View>\n      <FlatList\n        data={groups}\n        renderItem={({ item }) => <GroupCard group={item} />}\n        ListHeaderComponent={<CreateGroupButton />}\n      />\n    </View>\n  );\n}\n```\n2. 순 그룹 생성 기능:\n   - 그룹명, 캠퍼스 입력\n   - 초기 멤버 추가\n3. 순 그룹 수정 기능:\n   - 그룹명, 캠퍼스 정보 수정\n   - 그룹 설정 변경\n4. 순 그룹 삭제 기능:\n   - 관리자 권한 확인\n   - 삭제 확인 프로세스\n5. 그룹 상세 화면:\n   - 멤버 목록\n   - 공유된 일기 및 기도제목 목록\n   - 그룹 설정 (관리자용)",
+      "testStrategy": "1. 그룹 목록 로딩 및 표시 테스트\n2. 그룹 생성 기능 테스트\n3. 그룹 수정 및 삭제 기능 테스트\n4. 권한에 따른 기능 접근 테스트\n5. 그룹 데이터 업데이트 테스트",
       "subtasks": [
         {
           "id": 1,
@@ -162,7 +217,7 @@
           "description": "사용자가 속한 순 그룹의 목록을 조회하고, 그룹 생성 버튼을 포함한 목록 화면을 구현한다.",
           "dependencies": [],
           "details": "useQuery를 활용하여 그룹 데이터를 불러오고, FlatList로 그룹 목록을 표시한다. 그룹 생성 버튼을 목록 상단에 배치한다.",
-          "status": "in-progress",
+          "status": "done",
           "testStrategy": "목록에 사용자의 그룹이 올바르게 표시되는지, 그룹 생성 버튼이 정상적으로 동작하는지 확인한다."
         },
         {
@@ -173,30 +228,39 @@
             1
           ],
           "details": "그룹 생성 폼을 제공하고, 입력값 유효성 검사 및 그룹 생성 API 연동을 구현한다. 초기 멤버 추가 기능을 포함한다.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "정상 입력 시 그룹이 생성되고, 잘못된 입력 시 오류 메시지가 표시되는지 테스트한다."
-        },
-        {
-          "id": 3,
-          "title": "순 그룹 초대 기능 구현",
-          "description": "이메일 또는 학번으로 그룹 멤버를 검색하여 초대하거나, 초대 링크를 생성하는 기능을 개발한다.",
-          "dependencies": [
-            2
-          ],
-          "details": "검색 기능과 초대 요청, 초대 링크 생성(선택적) 기능을 구현한다. 초대된 사용자가 그룹에 정상적으로 추가되는지 확인한다.",
-          "status": "pending",
-          "testStrategy": "검색 결과가 정확히 표시되고, 초대 및 링크를 통한 가입이 정상적으로 처리되는지 검증한다."
         },
         {
           "id": 4,
           "title": "순 그룹 상세 화면 및 설정 기능 구현",
           "description": "그룹의 상세 정보(멤버 목록, 공유된 일기 및 기도제목, 그룹 설정)를 확인하고 관리할 수 있는 화면을 구현한다.",
-          "dependencies": [
-            3
-          ],
+          "dependencies": [],
           "details": "멤버 목록, 공유 콘텐츠 목록, 관리자용 그룹 설정(멤버 관리, 그룹 정보 수정 등) 기능을 포함한다.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "상세 정보가 정확히 표시되고, 관리자 기능(멤버 관리, 정보 수정 등)이 정상 동작하는지 테스트한다."
+        },
+        {
+          "id": 5,
+          "title": "순 그룹 수정 기능 구현",
+          "description": "기존 순 그룹의 정보(그룹명, 캠퍼스 등)를 수정할 수 있는 기능을 구현한다.",
+          "dependencies": [
+            4
+          ],
+          "details": "그룹 정보 수정 폼을 제공하고, 입력값 유효성 검사 및 그룹 수정 API 연동을 구현한다. 관리자 권한 확인 로직을 포함한다.",
+          "status": "done",
+          "testStrategy": "관리자만 수정 기능에 접근할 수 있는지, 수정된 정보가 정확히 저장되고 표시되는지 테스트한다."
+        },
+        {
+          "id": 6,
+          "title": "순 그룹 삭제 기능 구현",
+          "description": "순 그룹을 삭제할 수 있는 기능을 구현한다. 관리자 권한 확인 및 삭제 확인 프로세스를 포함한다.",
+          "dependencies": [
+            4
+          ],
+          "details": "그룹 삭제 기능에 대한 UI 요소를 추가하고, 삭제 전 확인 대화상자를 표시한다. 관리자 권한 확인 및 삭제 API 연동을 구현한다.",
+          "status": "done",
+          "testStrategy": "관리자만 삭제 기능에 접근할 수 있는지, 삭제 확인 프로세스가 정상 작동하는지, 삭제 후 그룹 목록에서 해당 그룹이 제거되는지 테스트한다."
         }
       ]
     },
@@ -426,6 +490,19 @@
           "parentTaskId": 21
         }
       ]
+    },
+    {
+      "id": 22,
+      "title": "순 그룹 초대 기능 구현",
+      "description": "이메일 또는 학번으로 그룹 멤버를 검색하여 초대하거나, 초대 링크를 생성하는 기능을 개발한다.",
+      "details": "검색 기능과 초대 요청, 초대 링크 생성(선택적) 기능을 구현한다. 초대된 사용자가 그룹에 정상적으로 추가되는지 확인한다.",
+      "testStrategy": "검색 결과가 정확히 표시되고, 초대 및 링크를 통한 가입이 정상적으로 처리되는지 검증한다.",
+      "status": "pending",
+      "dependencies": [
+        9
+      ],
+      "priority": "medium",
+      "subtasks": []
     }
   ]
 }

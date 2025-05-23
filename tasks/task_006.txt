@@ -36,3 +36,41 @@ function JournalCalendar({ onDayPress }: Props) {
 2. 일기 작성 날짜 마커 표시 테스트
 3. 날짜 이동 및 월 변경 테스트
 4. 데이터 로딩 상태 테스트
+
+# Subtasks:
+## 1. react-native-calendars 기본 설정 및 월간 캘린더 렌더링 [done]
+### Dependencies: None
+### Description: react-native-calendars 라이브러리를 설치하고, 기본적인 월간 캘린더를 화면에 렌더링합니다.
+### Details:
+라이브러리 import 및 Calendar 컴포넌트를 사용하여 화면에 표시하는 초기 작업을 수행합니다. 사용자가 제공한 Figma 디자인을 참고하여 기본 스타일을 적용합니다.
+
+## 2. 캘린더 헤더 구현 (연도/월 표시 및 월 이동 기능) [done]
+### Dependencies: None
+### Description: 캘린더 상단에 현재 연도와 월을 표시하고, 좌우 화살표 아이콘을 통해 월을 이동하는 기능을 구현합니다.
+### Details:
+Figma 디자인을 참고하여 연/월 표시 스타일을 적용하고, react-native-calendars 라이브러리의 월 이동 기능을 활용합니다.
+
+## 3. 일기 데이터 연동 및 날짜별 커스텀 마커 표시 [done]
+### Dependencies: None
+### Description: Supabase에서 해당 월의 일기 작성 데이터(날짜 및 emotion_id)를 가져와, 날짜별로 커스텀 마커(감정 이모티콘 또는 기본 마커, 오늘 날짜 강조)를 표시합니다.
+### Details:
+API를 통해 emotion_id를 받아오고, 이를 기반으로 적절한 이모티콘 이미지를 렌더링합니다. 오늘 날짜는 Figma 디자인에 따라 특별히 강조합니다. 일기가 없는 날은 기본 마커를 표시합니다.
+
+## 4. 날짜 선택 시 일기 상세/작성 화면 이동 로직 구현 [pending]
+### Dependencies: None
+### Description: 캘린더에서 특정 날짜를 선택했을 때, 해당 날짜의 일기 상세 화면으로 이동하거나 일기가 없는 경우 새 일기 작성 화면으로 이동하는 네비게이션 로직을 구현합니다.
+### Details:
+선택된 날짜에 일기 데이터가 있는지 확인하고, 조건에 따라 적절한 화면으로 네비게이트합니다.
+
+## 5. FAB (일기 작성 버튼) 구현 및 네비게이션 연결 [pending]
+### Dependencies: None
+### Description: 화면 우측 하단에 '+' 아이콘이 있는 FAB(Floating Action Button)를 Figma 디자인에 따라 구현하고, 새 일기 작성 화면으로 이동하는 네비게이션을 연결합니다.
+### Details:
+FAB 컴포넌트를 만들고 스타일링하며, onPress 이벤트를 통해 네비게이션을 트리거합니다.
+
+## 6. 필요한 감정 이모티콘 에셋 다운로드 및 통합 [pending]
+### Dependencies: None
+### Description: Figma 디자인에 사용된 다양한 감정 이모티콘(신남, 기분 안 좋음 등) 이미지들을 SVG 또는 PNG 형태로 다운로드하여 프로젝트 에셋으로 포함시키고, 이를 캘린더 마커에 사용할 수 있도록 준비합니다.
+### Details:
+Figma에서 이미지 에셋을 추출하고, src/assets/images/emotions/ 와 같은 적절한 경로에 저장합니다. 이미지 사용을 위한 컴포넌트나 로직을 준비할 수 있습니다.
+

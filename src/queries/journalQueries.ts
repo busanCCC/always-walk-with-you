@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchJournalsByDateRange } from '../apis/journalApi';
+import { useQuery, keepPreviousData, useQueries } from '@tanstack/react-query';
+import { fetchJournalsByDateRange, fetchJournalById } from '../apis/journalApi';
 import { Journal } from '../types/journal';
 import { useAuthStore } from '@/store/authStore';
 import { getSunday, formatDate } from '../utils/dateUtils';
@@ -8,6 +8,9 @@ export const journalQueryKeys = {
   all: ['journals'] as const,
   list: (startDate: string, endDate: string, userId?: string) =>
     [...journalQueryKeys.all, 'list', { startDate, endDate, userId }] as const,
+  monthlyList: (year: number, month: number, userId?: string) =>
+    [...journalQueryKeys.all, 'monthlyList', { year, month, userId }] as const,
+  detail: (id: string) => [...journalQueryKeys.all, 'detail', id] as const,
 };
 
 export const useWeeklyJournalsQuery = () => {
@@ -39,11 +42,45 @@ export const useWeeklyJournalsQuery = () => {
   });
 };
 
+/**
+ * 특정 연도와 월의 영성일기 목록을 가져오는 react-query 훅
+ * @param year 조회할 연도 (e.g., 2024)
+ * @param month 조회할 월 (1-12)
+ */
+export const useMonthlyJournalsQuery = (year: number, month: number) => {
+  const userId = useAuthStore((state) => state.session?.user?.id);
+
+  // 해당 월의 시작일과 마지막 날 계산
+  // month는 0 (January) 부터 11 (December)까지의 값을 사용하므로, 전달받은 month에서 1을 빼줍니다.
+  const startDate = formatDate(new Date(year, month - 1, 1));
+  const endDate = formatDate(new Date(year, month, 0)); // 다음 달의 0번째 날은 해당 월의 마지막 날
+
+  return useQuery<Journal[], Error>({
+    queryKey: journalQueryKeys.monthlyList(year, month, userId),
+    queryFn: async () => {
+      if (!userId) {
+        return [];
+      }
+      return fetchJournalsByDateRange(startDate, endDate, userId);
+    },
+    enabled: !!userId && year > 0 && month > 0 && month <= 12, // 유효한 userId와 연/월일 때만 실행
+    staleTime: 1000 * 60 * 5, // 5분
+    placeholderData: keepPreviousData, // 이전 데이터를 유지 (v5 방식)
+  });
+};
+
 // 만약 개별 Journal을 가져오는 API가 있다면:
-// export const useJournalDetailQuery = (journalId: string) => {
-//   return useQuery<Journal, Error>({
-//     queryKey: journalQueryKeys.detail(journalId),
-//     queryFn: async () => fetchJournalById(journalId), // fetchJournalById API 함수 필요
-//     enabled: !!journalId,
-//   });
-// };
+export const useJournalDetailQuery = (journalId: string) => {
+  const userId = useAuthStore((state) => state.session?.user?.id);
+  return useQuery<Journal, Error>({
+    queryKey: journalQueryKeys.detail(journalId),
+    queryFn: async () => {
+      if (!userId) {
+        throw new Error('사용자 ID가 없어 상세 정보를 가져올 수 없습니다.');
+      }
+      return fetchJournalById(journalId);
+    },
+    enabled: !!journalId && !!userId,
+    staleTime: 1000 * 60 * 5,
+  });
+};
