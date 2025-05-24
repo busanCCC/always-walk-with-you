@@ -14,6 +14,10 @@ export const colors = {
     DEFAULT: '#F6B54E',
     light: '#FFF5E4',
   },
+  danger: {
+    DEFAULT: '#EF4444',
+    light: '#FEF2F2',
+  },
   'dark-grey-01': '#3D3D3D',
   'dark-grey-02': '#242424',
   'grey-01': '#A5A5A5',

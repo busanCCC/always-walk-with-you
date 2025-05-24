@@ -6,86 +6,55 @@ import {
   GroupWithMembershipDetails,
   UpdateGroupPayload,
   GroupMemberWithUser,
+  UserGroup,
 } from '@/types/group';
 
 /**
- * 현재 사용자가 속한 순 그룹 목록을 가져옵니다.
+ * 현재 사용자가 속한 모든 그룹을 가져옵니다.
  */
-export const fetchUserGroups = async (): Promise<GroupWithMembershipDetails[]> => {
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    throw new Error('인증된 사용자가 없습니다.');
-  }
+export const fetchUserGroups = async (userId: string): Promise<UserGroup[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('group_memberships')
+      .select(
+        `
+        id,
+        user_id,
+        group_id,
+        is_admin,
+        joined_at,
+        groups (
+          id,
+          name,
+          description,
+          created_at,
+          updated_at
+        )
+      `
+      )
+      .eq('user_id', userId)
+      .order('joined_at', { ascending: false });
 
-  const { data: userMemberships, error: membershipError } = await supabase
-    .from('group_memberships')
-    .select('group_id')
-    .eq('user_id', userData.user.id);
+    if (error) {
+      console.error('Error fetching user groups:', error);
+      throw error;
+    }
 
-  if (membershipError) {
-    console.error('그룹 멤버십 조회 오류:', membershipError);
-    throw membershipError;
-  }
+    // Supabase에서 반환된 데이터를 UserGroup 타입에 맞게 변환
+    const userGroups: UserGroup[] = (data || []).map((item: any) => ({
+      id: item.id,
+      user_id: item.user_id,
+      group_id: item.group_id,
+      role: item.is_admin ? 'admin' : 'member',
+      joined_at: item.joined_at,
+      group: item.groups,
+    }));
 
-  if (!userMemberships || userMemberships.length === 0) {
+    return userGroups;
+  } catch (err) {
+    console.error('An unexpected error occurred while fetching user groups:', err);
     return [];
   }
-
-  const groupIds = userMemberships.map((membership) => membership.group_id);
-
-  const groupsWithDetails = await Promise.all(
-    groupIds.map(async (groupId) => {
-      const { data: group, error: groupError } = await supabase
-        .from('groups')
-        .select('*')
-        .eq('id', groupId)
-        .single();
-
-      if (groupError || !group) {
-        console.error('그룹 정보 조회 오류:', groupError);
-        return null;
-      }
-
-      const { data: membership, error: userMembershipError } = await supabase
-        .from('group_memberships')
-        .select('*')
-        .eq('group_id', groupId)
-        .eq('user_id', userData.user.id)
-        .single();
-
-      if (userMembershipError) {
-        console.error('사용자 멤버십 조회 오류:', userMembershipError);
-        return null;
-      }
-
-      const { count, error: countError } = await supabase
-        .from('group_memberships')
-        .select('*', { count: 'exact', head: true })
-        .eq('group_id', groupId);
-
-      if (countError) {
-        console.error('멤버 수 조회 오류:', countError);
-      }
-
-      const hasNewContent = false;
-
-      return {
-        ...group,
-        member_count: count || 0,
-        is_admin: membership?.is_admin || false,
-        has_new_content: hasNewContent,
-        membership: {
-          id: membership?.id,
-          group_id: groupId,
-          user_id: userData.user.id,
-          is_admin: membership?.is_admin || false,
-          joined_at: membership?.joined_at,
-        },
-      } as GroupWithMembershipDetails;
-    })
-  );
-
-  return groupsWithDetails.filter(Boolean) as GroupWithMembershipDetails[];
 };
 
 export const createGroup = async (groupData: CreateGroupPayload) => {

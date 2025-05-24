@@ -3,17 +3,16 @@ import {
   View,
   Text,
   StyleSheet,
-  // SafeAreaView, // react-native에서 제거
   TouchableOpacity,
   Image,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // 여기서 import
+import { SafeAreaView } from 'react-native-safe-area-context';
 import theme from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/utils/supabaseClient';
-import UserIcon from '@/assets/svg/user-icon.svg'; // 기본 유저 아이콘
+import UserIcon from '@/assets/svg/user-icon.svg';
 
 interface UserProfile {
   id: string;

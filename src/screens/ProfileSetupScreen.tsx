@@ -5,7 +5,6 @@ import {
   TextInput,
   StyleSheet,
   ScrollView,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
@@ -17,10 +16,11 @@ import { supabase } from '@/utils/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '@/navigation/AppNavigator';
 import StyledButton from '@/components/common/StyledButton';
 import CustomHeader from '@/components/common/CustomHeader';
-import CloseIcon from '@/assets/svg/close-icon.svg';
+import AlertModal from '@/components/common/AlertModal';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { RootStackParamList } from '@/navigation/types';
 
 type ProfileSetupScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -46,6 +46,19 @@ export default function ProfileSetupScreen() {
   const [studentId, setStudentId] = useState('');
   const [role, setRole] = useState<string | null>(ROLES[0].value);
   const [loading, setLoading] = useState(false);
+  const [alertModal, setAlertModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({ visible: false, title: '', message: '' });
+
+  const showAlert = (title: string, message: string) => {
+    setAlertModal({ visible: true, title, message });
+  };
+
+  const hideAlert = () => {
+    setAlertModal({ visible: false, title: '', message: '' });
+  };
 
   const handleClose = () => {
     signOut();
@@ -54,11 +67,11 @@ export default function ProfileSetupScreen() {
 
   const handleSaveProfile = async () => {
     if (!user) {
-      Alert.alert('오류', '사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
+      showAlert('오류', '사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
       return;
     }
     if (!name || !campus || !studentId || !role) {
-      Alert.alert('정보 입력 필요', '이름, 캠퍼스, 학번, 역할은 필수 항목입니다.');
+      showAlert('정보 입력 필요', '이름, 캠퍼스, 학번, 역할은 필수 항목입니다.');
       return;
     }
 
@@ -87,7 +100,7 @@ export default function ProfileSetupScreen() {
 
       if (error) {
         console.error('프로필 저장 오류:', error);
-        Alert.alert('오류', '프로필 저장 중 문제가 발생했습니다: ' + error.message);
+        showAlert('오류', '프로필 저장 중 문제가 발생했습니다: ' + error.message);
       } else {
         setProfileCompleted(true);
         navigation.reset({
@@ -97,7 +110,7 @@ export default function ProfileSetupScreen() {
       }
     } catch (e) {
       console.error('프로필 저장 예외:', e);
-      Alert.alert('오류', '프로필 저장 중 예외가 발생했습니다.');
+      showAlert('오류', '프로필 저장 중 예외가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -113,7 +126,7 @@ export default function ProfileSetupScreen() {
         showBackButton={false}
         headerRight={
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <CloseIcon width={20} height={20} fill={theme.colors['dark-grey-02']} />
+            <Ionicons name="close" size={24} color={theme.colors['dark-grey-02']} />
           </TouchableOpacity>
         }
         noBorder
@@ -194,6 +207,12 @@ export default function ProfileSetupScreen() {
           />
         </View>
       </KeyboardAvoidingView>
+      <AlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        onClose={hideAlert}
+      />
     </SafeAreaView>
   );
 }

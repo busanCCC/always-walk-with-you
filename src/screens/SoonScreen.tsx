@@ -13,7 +13,7 @@ import { useUserGroups } from '@/queries/groupQueries';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GroupWithMembershipDetails } from '@/types/group';
+import { GroupWithMembershipDetails, UserGroup } from '@/types/group';
 import AddGroupModal from '@/components/common/AddGroupModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { MainTabParamList, RootStackParamList } from '@/navigation/types';
@@ -47,12 +47,12 @@ const SoonScreen: React.FC = () => {
     setRefreshing(false);
   }, [refetch]);
 
-  const handleGroupPress = (group: GroupWithMembershipDetails) => {
+  const handleGroupPress = (userGroup: UserGroup) => {
     const parentNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
     if (parentNavigation) {
       parentNavigation.navigate('GroupDetail', {
-        groupId: group.id,
-        groupName: group.name,
+        groupId: userGroup.group.id,
+        groupName: userGroup.group.name,
       });
     }
   };
@@ -89,28 +89,34 @@ const SoonScreen: React.FC = () => {
     <>
       <ScrollView
         style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary.DEFAULT}
+            colors={[theme.colors.primary.DEFAULT]}
+          />
+        }>
         <Text style={styles.title}>나의 순</Text>
 
         {groups && groups.length > 0 ? (
-          groups.map((group) => (
+          groups.map((userGroup) => (
             <TouchableOpacity
-              key={group.id}
+              key={userGroup.id}
               style={styles.card}
               activeOpacity={0.8}
-              onPress={() => handleGroupPress(group)}>
+              onPress={() => handleGroupPress(userGroup)}>
               <View style={styles.cardHeader}>
                 <View style={styles.cardHeaderLeft}>
-                  <Text style={styles.cardTitle}>{group.name}</Text>
-                  <Text style={styles.cardMembers}>{group.member_count}</Text>
+                  <Text style={styles.cardTitle}>{userGroup.group.name}</Text>
                 </View>
-                {group.has_new_content && (
+                {userGroup.role === 'admin' && (
                   <View style={styles.newBadge}>
-                    <Text style={styles.newBadgeText}>N</Text>
+                    <Text style={styles.newBadgeText}>관리자</Text>
                   </View>
                 )}
               </View>
-              <Text style={styles.cardDescription}>{group.description || ''}</Text>
+              <Text style={styles.cardDescription}>{userGroup.group.description || ''}</Text>
             </TouchableOpacity>
           ))
         ) : (
@@ -156,9 +162,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: theme.spacing[4],
     marginBottom: theme.spacing[3],
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 1,
     borderWidth: 1,
     borderColor: theme.colors['light-grey-02'],
   },

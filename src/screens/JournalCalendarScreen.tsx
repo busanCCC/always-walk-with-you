@@ -1,5 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator, Image } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  RefreshControl,
+} from 'react-native';
 import { Calendar, LocaleConfig, DateData } from 'react-native-calendars';
 import { useNavigation } from '@react-navigation/native';
 import { useQueries, keepPreviousData, UseQueryResult } from '@tanstack/react-query';
@@ -12,8 +21,10 @@ import { useAuthStore } from '@/store/authStore';
 import { formatDate } from '@/utils/dateUtils';
 import { RootStackParamList } from '@/navigation/types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { hasJournalForDate, findJournalForDate, getTodayString } from '@/utils/journalUtils';
+import AlertModal from '@/components/common/AlertModal';
+import Toast from 'react-native-toast-message';
 
-// react-native-calendars 한글 설정 (필요시)
 LocaleConfig.locales['ko'] = {
   monthNames: [
     '1월',
@@ -36,21 +47,13 @@ LocaleConfig.locales['ko'] = {
 };
 LocaleConfig.defaultLocale = 'ko';
 
-// CustomMarking 타입을 CalendarProps['markedDates'] 내부 타입을 활용하여 정의 시도
-// 또는 라이브러리가 제공하는 정확한 마킹 타입으로 대체 필요.
-// 우선 간단하게 selected, selectedColor, customStyles만 있는 형태로 정의
 interface CustomDayMarking {
   selected?: boolean;
   selectedColor?: string;
-  // dotColor?: string; // markingType='dot' 또는 'multi-dot' 일 때 사용
-  // marked?: boolean; // markingType='dot' 또는 'multi-dot' 일 때 사용
   customStyles?: {
     text?: object;
   };
-  // emotionId는 더 이상 직접 사용하지 않으므로 삭제 또는 주석 처리 가능
-  // emotionId?: string;
   isToday?: boolean;
-  // 다른 필요한 마킹 속성들...
 }
 
 interface MarkedDatesType {
@@ -62,17 +65,23 @@ const MIN_CALENDAR_HEIGHT = 420; // 최소 높이 약간 증가 (6주 * 70px 가
 const JournalCalendarScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [currentDisplayMonth, setCurrentDisplayMonth] = useState(new Date());
-  const todayString = new Date().toISOString().split('T')[0];
+  const [refreshing, setRefreshing] = useState(false);
+  const todayString = getTodayString();
   const userId = useAuthStore((state) => state.session?.user?.id);
+  const [alertModal, setAlertModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({ visible: false, title: '', message: '' });
 
   // 현재 표시 월 기준 앞뒤 3개월 (총 7개월) 범위 계산
   const monthsToQuery = useMemo(() => {
     const year = currentDisplayMonth.getFullYear();
-    const month = currentDisplayMonth.getMonth(); // 0-11
+    const month = currentDisplayMonth.getMonth();
     const months = [];
     for (let i = -3; i <= 3; i++) {
       const d = new Date(year, month + i, 1);
-      months.push({ year: d.getFullYear(), month: d.getMonth() + 1 }); // month는 1-12
+      months.push({ year: d.getFullYear(), month: d.getMonth() + 1 });
     }
     return months;
   }, [currentDisplayMonth]);
@@ -88,7 +97,7 @@ const JournalCalendarScreen = () => {
         return fetchJournalsByDateRange(startDate, endDate, userId);
       },
       enabled: !!userId,
-      staleTime: 1000 * 60 * 60, // 1 hour
+      staleTime: 1000 * 60 * 60,
       placeholderData: keepPreviousData,
     })),
   });
@@ -123,13 +132,42 @@ const JournalCalendarScreen = () => {
   const isErrorCurrentMonthData = currentMonthQuery?.isError;
   const currentMonthError = currentMonthQuery?.error;
 
+  const showAlert = (title: string, message: string) => {
+    setAlertModal({ visible: true, title, message });
+  };
+
+  const hideAlert = () => {
+    setAlertModal({ visible: false, title: '', message: '' });
+  };
+
+  const handleFabPress = () => {
+    // 오늘 날짜에 이미 일기가 있는지 확인
+    if (hasJournalForDate(allFetchedJournals, todayString)) {
+      showAlert(
+        '일기 작성 제한',
+        '오늘은 이미 일기를 작성했습니다.\n다른 날의 일기를 작성하려면 캘린더에서 빈 날짜를 선택해주세요.'
+      );
+      return;
+    }
+
+    // 오늘 날짜에 일기가 없으면 일기 작성으로 이동
+    navigation.navigate('SelectJournalMode', {});
+  };
+
+  // onDayPress 함수 수정
   const onDayPress = (day: DateData) => {
     console.log('selected day', day);
-    const journalForDay = allFetchedJournals.find((j) => j.date === day.dateString);
-    if (journalForDay) {
-      navigation.navigate('JournalDetail', { journalId: journalForDay.id });
+
+    const selectedDateString = day.dateString;
+    const existingJournal = findJournalForDate(allFetchedJournals, selectedDateString);
+
+    if (existingJournal) {
+      // 이미 일기가 있는 날짜를 클릭한 경우 - 상세 보기로 이동
+      navigation.navigate('JournalDetail', { journalId: existingJournal.id });
     } else {
-      console.log('No journal for this day, navigate to create new or show message');
+      // 일기가 없는 날짜를 클릭한 경우 - 해당 날짜로 일기 작성
+      // 선택한 날짜로 일기 작성 화면으로 이동
+      navigation.navigate('SelectJournalMode', { selectedDate: selectedDateString });
     }
   };
 
@@ -137,14 +175,12 @@ const JournalCalendarScreen = () => {
   const markedDates = useMemo((): MarkedDatesType => {
     const marked: MarkedDatesType = {};
 
-    // 오늘 날짜 표시
     marked[todayString] = {
       isToday: true,
       customStyles: {
         text: {
           color: colors.white,
           backgroundColor: colors.primary.DEFAULT,
-          paddingVertical: spacing[0.5],
           paddingHorizontal: spacing[2],
           borderRadius: spacing[3],
           fontFamily: fonts.bold,
@@ -170,7 +206,6 @@ const JournalCalendarScreen = () => {
     return marked;
   }, [allFetchedJournals, todayString]);
 
-  // Figma 헤더 스타일 반영 (renderHeader 사용)
   const renderCustomHeader = (date: any) => {
     const headerDate = new Date(date);
     const year = headerDate.getFullYear();
@@ -181,25 +216,17 @@ const JournalCalendarScreen = () => {
         <Text style={styles.customHeaderYearText}>{year}</Text>
         <View style={styles.monthRowContainer}>
           <Text style={styles.customHeaderMonthText}>{month}월</Text>
-          {/* {isFetching && (
-            <ActivityIndicator
-              size="small"
-              color={colors.primary.DEFAULT}
-              style={styles.headerSpinner}
-            />
-          )} */}
         </View>
       </View>
     );
   };
 
-  // renderArrow 함수 복원
   const renderArrow = (direction: 'left' | 'right') => {
     return (
       <Ionicons
         name={direction === 'left' ? 'chevron-back' : 'chevron-forward'}
-        size={22} // Figma 아이콘 크기 (22x22)
-        color={colors['grey-03']} // Figma 아이콘 색상 (#6F6F6F)
+        size={22}
+        color={colors['grey-03']}
       />
     );
   };
@@ -282,6 +309,25 @@ const JournalCalendarScreen = () => {
     );
   };
 
+  // 새로고침 함수
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // 모든 쿼리 refetch
+      await Promise.all(journalQueriesResults.map((query) => query.refetch()));
+    } catch (error) {
+      console.error('새로고침 중 오류 발생:', error);
+      Toast.show({
+        type: 'error',
+        text1: '새로고침 실패',
+        text2: '데이터를 불러오는 중 오류가 발생했습니다.',
+        visibilityTime: 2000,
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // 초기 로딩 시에만 전체 화면 로딩 인디케이터 표시
   if (isLoadingCurrentMonthData) {
     return (
@@ -301,34 +347,57 @@ const JournalCalendarScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Calendar
-        current={currentDisplayMonth.toISOString().split('T')[0]}
-        markingType={'custom'}
-        markedDates={markedDates}
-        onMonthChange={(date) => {
-          // isFetching 조건 없이 월 변경
-          setCurrentDisplayMonth(new Date(date.timestamp));
-        }}
-        hideExtraDays={true}
-        renderArrow={renderArrow}
-        dayComponent={dayComponent}
-        renderHeader={renderCustomHeader}
-        theme={{
-          backgroundColor: colors.white,
-          calendarBackground: colors.white,
-          textSectionTitleColor: colors['grey-01'],
-          dayTextColor: colors['grey-01'],
-          textDisabledColor: colors['light-grey-02'],
-          arrowColor: colors['grey-03'],
-          textDayFontFamily: fonts.regular,
-          textMonthFontFamily: fonts.semiBold,
-          textDayHeaderFontFamily: fonts.regular,
-          textDayFontSize: fontStyles['sm-normal'].fontSize,
-          textMonthFontSize: fontStyles['xl-tight'].fontSize,
-          textDayHeaderFontSize: fontStyles['xs-normal'].fontSize,
-          weekVerticalMargin: spacing[1.5],
-        }}
-        style={[styles.calendar, { flex: 1, minHeight: MIN_CALENDAR_HEIGHT }]}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary.DEFAULT}
+            colors={[colors.primary.DEFAULT]}
+          />
+        }
+        showsVerticalScrollIndicator={false}>
+        <Calendar
+          current={currentDisplayMonth.toISOString().split('T')[0]}
+          markingType={'custom'}
+          markedDates={markedDates}
+          onMonthChange={(date) => {
+            // isFetching 조건 없이 월 변경
+            setCurrentDisplayMonth(new Date(date.timestamp));
+          }}
+          hideExtraDays={true}
+          renderArrow={renderArrow}
+          dayComponent={dayComponent}
+          renderHeader={renderCustomHeader}
+          theme={{
+            backgroundColor: colors.white,
+            calendarBackground: colors.white,
+            textSectionTitleColor: colors['grey-01'],
+            dayTextColor: colors['grey-01'],
+            textDisabledColor: colors['light-grey-02'],
+            arrowColor: colors['grey-03'],
+            textDayFontFamily: fonts.regular,
+            textMonthFontFamily: fonts.semiBold,
+            textDayHeaderFontFamily: fonts.regular,
+            textDayFontSize: fontStyles['sm-normal'].fontSize,
+            textMonthFontSize: fontStyles['xl-tight'].fontSize,
+            textDayHeaderFontSize: fontStyles['xs-normal'].fontSize,
+            weekVerticalMargin: spacing[1.5],
+          }}
+          style={[styles.calendar, { minHeight: MIN_CALENDAR_HEIGHT }]}
+        />
+      </ScrollView>
+      {/* FAB */}
+      <TouchableOpacity style={styles.fabContainer} onPress={handleFabPress}>
+        <Ionicons name="create-outline" size={30} color={colors.primary.DEFAULT} />
+      </TouchableOpacity>
+      <AlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        onClose={hideAlert}
       />
     </View>
   );
@@ -338,19 +407,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
-
     paddingHorizontal: spacing[4],
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
   },
   customHeaderMainContainer: {
     flexDirection: 'column',
     alignItems: 'center',
     paddingLeft: spacing[2],
     paddingVertical: spacing[2],
+    marginBottom: spacing[2],
   },
   monthRowContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing[0.5],
   },
   customHeaderYearText: {
     fontFamily: fonts.semiBold,
@@ -372,41 +446,39 @@ const styles = StyleSheet.create({
     // 캘린더 자체에는 그림자나 특별한 테두리가 없음 (Figma 확인)
   },
   dayContainer: {
-    width: 49,
-    height: 70,
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: spacing[2],
+    marginBottom: spacing[1],
   },
   dayText: {
-    fontFamily: fonts.regular,
-    fontSize: fontStyles['sm-normal'].fontSize,
+    ...fontStyles['base-normal'],
     color: colors['grey-01'],
-    marginBottom: spacing[1.5],
+    marginBottom: spacing[1],
     textAlign: 'center',
   },
   disabledText: {
     color: colors['light-grey-02'],
   },
   emotionImage: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
   },
   placeholderCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors['light-grey-01'],
   },
   todayBlueCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.primary.light,
   },
   iconContainer: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -417,10 +489,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   errorText: {
-    // 에러 메시지용 스타일
     color: colors.secondary.DEFAULT,
-    fontSize: fontStyles['base-normal'].fontSize,
-    fontFamily: fonts.medium,
+    ...fontStyles['base-normal'],
+  },
+
+  fabContainer: {
+    position: 'absolute',
+    bottom: spacing[4],
+    right: spacing[4],
+    backgroundColor: colors.primary.light,
+    padding: spacing[2],
+    borderRadius: 20,
+  },
+  fabText: {
+    ...fontStyles['base-normal'],
+    color: colors.primary.DEFAULT,
   },
 });
 
