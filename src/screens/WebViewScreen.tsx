@@ -3,7 +3,7 @@ import { SafeAreaView, StyleSheet, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import theme from '@/constants/theme';
-import type { RootStackParamList } from '@/navigation/AppNavigator';
+import type { RootStackParamList } from '@/navigation/types';
 
 type WebViewScreenProps = NativeStackScreenProps<RootStackParamList, 'WebView'>;
 

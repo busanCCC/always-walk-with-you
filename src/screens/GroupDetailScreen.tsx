@@ -5,12 +5,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  Pressable,
   ActivityIndicator,
   TextInput,
   ScrollView,
   Dimensions,
-  Alert,
   Animated,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -25,6 +23,7 @@ import {
 } from '@/queries/groupQueries';
 import { UpdateGroupPayload } from '@/types/group';
 import GroupModal from '@/components/common/GroupModal';
+import AlertModal from '@/components/common/AlertModal';
 
 type GroupDetailScreenRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 const { width } = Dimensions.get('window');
@@ -39,6 +38,11 @@ const GroupDetailScreen = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [alertModal, setAlertModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({ visible: false, title: '', message: '' });
   const [editGroupData, setEditGroupData] = useState<UpdateGroupPayload>({
     name: '',
     description: '',
@@ -128,9 +132,17 @@ const GroupDetailScreen = () => {
     closeDrawer();
   };
 
+  const showAlert = (title: string, message: string) => {
+    setAlertModal({ visible: true, title, message });
+  };
+
+  const hideAlert = () => {
+    setAlertModal({ visible: false, title: '', message: '' });
+  };
+
   const handleEditSubmit = () => {
     if (!editGroupData.name.trim()) {
-      Alert.alert('오류', '순 이름은 반드시 입력해야 합니다.');
+      showAlert('오류', '순 이름은 반드시 입력해야 합니다.');
       return;
     }
 
@@ -146,7 +158,7 @@ const GroupDetailScreen = () => {
         },
         onError: (error) => {
           console.error('그룹 수정 오류:', error);
-          Alert.alert('오류', `순 정보 수정 중 오류가 발생했습니다: ${error.message}`);
+          showAlert('오류', `순 정보 수정 중 오류가 발생했습니다: ${error.message}`);
         },
       }
     );
@@ -162,7 +174,7 @@ const GroupDetailScreen = () => {
       },
       onError: (error) => {
         console.error('그룹 삭제 오류:', error);
-        Alert.alert('오류', `순 삭제 중 오류가 발생했습니다: ${error.message}`);
+        showAlert('오류', `순 삭제 중 오류가 발생했습니다: ${error.message}`);
       },
     });
   };
@@ -379,6 +391,14 @@ const GroupDetailScreen = () => {
           </TouchableOpacity>
         </View>
       </GroupModal>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        onClose={hideAlert}
+      />
     </View>
   );
 };
@@ -559,7 +579,7 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
   },
   editModalTitle: {
-    ...fontStyles['lg-tight'],
+    ...fontStyles['xl-tight'],
     color: colors['dark-grey-01'],
     marginBottom: spacing[4],
     textAlign: 'center',
@@ -620,7 +640,7 @@ const styles = StyleSheet.create({
     padding: spacing[4],
   },
   deleteModalTitle: {
-    ...fontStyles['lg-tight'],
+    ...fontStyles['xl-tight'],
     color: colors['dark-grey-01'],
     marginBottom: spacing[4],
     textAlign: 'center',

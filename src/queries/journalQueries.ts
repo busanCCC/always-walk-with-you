@@ -1,6 +1,22 @@
-import { useQuery, keepPreviousData, useQueries } from '@tanstack/react-query';
-import { fetchJournalsByDateRange, fetchJournalById } from '../apis/journalApi';
+import {
+  useQuery,
+  keepPreviousData,
+  useQueries,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  fetchJournalsByDateRange,
+  fetchJournalById,
+  fetchEmotions,
+  createJournal,
+  deleteJournal,
+} from '../apis/journalApi';
+import questionsData from '../assets/data/questions.json';
+import { Question } from '../types/journal';
+import { fetchUserGroups } from '../apis/groupApi';
 import { Journal } from '../types/journal';
+import { UserGroup } from '../types/group';
 import { useAuthStore } from '@/store/authStore';
 import { getSunday, formatDate } from '../utils/dateUtils';
 
@@ -82,5 +98,86 @@ export const useJournalDetailQuery = (journalId: string) => {
     },
     enabled: !!journalId && !!userId,
     staleTime: 1000 * 60 * 5,
+  });
+};
+
+/**
+ * 모든 감정 데이터를 가져오는 쿼리 훅
+ */
+export const useEmotionsQuery = () => {
+  return useQuery({
+    queryKey: ['emotions'],
+    queryFn: fetchEmotions,
+    staleTime: 1000 * 60 * 60, // 1시간 캐시
+  });
+};
+
+/**
+ * 모든 질문 데이터를 가져오는 쿼리 훅 (로컬 JSON 사용)
+ */
+export const useQuestionsQuery = () => {
+  return useQuery<Question[], Error>({
+    queryKey: ['questions'],
+    queryFn: async () => {
+      // 로컬 JSON 데이터를 Promise로 래핑하여 반환
+      return Promise.resolve(questionsData as Question[]);
+    },
+    staleTime: Infinity, // 로컬 데이터이므로 캐시를 계속 유지
+  });
+};
+
+/**
+ * 현재 사용자가 속한 그룹들을 가져오는 쿼리 훅 (순 공유용)
+ */
+export const useUserGroupsForSharing = () => {
+  const userId = useAuthStore((state) => state.session?.user?.id);
+
+  return useQuery<UserGroup[], Error>({
+    queryKey: ['userGroupsForSharing', userId],
+    queryFn: async () => {
+      if (!userId) {
+        return [];
+      }
+      return fetchUserGroups(userId);
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // 5분 캐시
+  });
+};
+
+/**
+ * 새로운 저널을 생성하는 mutation 훅
+ */
+export const useCreateJournalMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createJournal,
+    onSuccess: (data) => {
+      // 관련된 쿼리들을 무효화하여 새로고침
+      queryClient.invalidateQueries({ queryKey: journalQueryKeys.all });
+    },
+  });
+};
+
+/**
+ * 저널을 삭제하는 mutation 훅
+ */
+export const useDeleteJournalMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ journalId, userId }: { journalId: string; userId: string }) =>
+      deleteJournal(journalId, userId),
+    onSuccess: (_, { journalId }) => {
+      queryClient.removeQueries({ queryKey: journalQueryKeys.detail(journalId) });
+
+      queryClient.invalidateQueries({
+        queryKey: journalQueryKeys.all,
+        predicate: (query) => {
+          return !query.queryKey.includes('detail');
+        },
+      });
+    },
   });
 };
