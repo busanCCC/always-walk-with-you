@@ -8,6 +8,9 @@ import { useAuthStore } from '@/store/authStore';
 import AppNavigator from '@/navigation/AppNavigator';
 import { View, StyleSheet } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Toast from 'react-native-toast-message';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -44,13 +47,18 @@ export default function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <View style={styles.appContainer} onLayout={onLayoutRootView}>
-          <AppNavigator />
-        </View>
-      </SafeAreaProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <BottomSheetModalProvider>
+            <View style={styles.appContainer} onLayout={onLayoutRootView}>
+              <AppNavigator />
+            </View>
+          </BottomSheetModalProvider>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+      <Toast />
+    </GestureHandlerRootView>
   );
 }
 

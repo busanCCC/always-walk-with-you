@@ -22,4 +22,8 @@ export type RootStackParamList = {
   };
   JournalCalendar: undefined;
   JournalDetail: { journalId: string };
+  SelectJournalMode: { selectedDate?: string };
+  CreateJournalFreeWrite: { selectedDate?: string };
+  CreateJournalPrompt: { selectedDate?: string };
+  // CreateJournalHandwriting: undefined;
 };

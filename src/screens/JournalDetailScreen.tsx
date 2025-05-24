@@ -1,33 +1,206 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, spacing, fonts, fontStyles } from '@/constants/theme';
+import { colors, spacing, fontStyles } from '@/constants/theme';
 import { RootStackParamList } from '@/navigation/types';
-import { useJournalDetailQuery } from '@/queries/journalQueries'; // 새로 추가될 훅
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  useJournalDetailQuery,
+  useQuestionsQuery,
+  useDeleteJournalMutation,
+} from '@/queries/journalQueries';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import JournalHeader from '@/components/common/JournalHeader';
+import CustomHeader from '@/components/common/CustomHeader';
+import ActionSheet from '@/components/common/ActionSheet';
+import ConfirmationModal from '@/components/common/ConfirmationModal';
+import { Journal } from '@/types/journal';
+import { useAuthStore } from '@/store/authStore';
+import Toast from 'react-native-toast-message';
 
 type JournalDetailScreenRouteProp = RouteProp<RootStackParamList, 'JournalDetail'>;
 
 const JournalDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<JournalDetailScreenRouteProp>();
-  const journalId = route.params?.journalId; // journalId를 받음
+  const journalId = route.params?.journalId;
+  const insets = useSafeAreaInsets();
 
   const { data: journal, isLoading, isError, error } = useJournalDetailQuery(journalId || '');
+  const { data: questions = [] } = useQuestionsQuery();
+  const { mutate: deleteJournal } = useDeleteJournalMutation();
+  const currentUserId = useAuthStore((state) => state.session?.user?.id);
+
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const isOwnPost = journal?.user_id === currentUserId;
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      header: () => (
+        <CustomHeader
+          headerLeft={
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
+              <Ionicons name="chevron-back" size={20} color={colors['dark-grey-02']} />
+            </TouchableOpacity>
+          }
+          headerRight={
+            <TouchableOpacity
+              onPress={() => setActionSheetVisible(true)}
+              style={styles.headerButton}>
+              <Ionicons name="ellipsis-vertical" size={20} color={colors['dark-grey-02']} />
+            </TouchableOpacity>
+          }
+          noBorder
+        />
+      ),
+    });
+  }, [navigation]);
 
   useEffect(() => {
     if (journal) {
+      console.log('journal', journal);
     }
   }, [journal, navigation]);
+
+  // 자유 작성 일기 렌더링
+  const renderFreeWritingContent = (journal: Journal) => {
+    const content = journal.journal_entries?.[0]?.text_content;
+    return (
+      <View style={styles.contentContainer}>
+        <Text style={styles.journalContentText}>{content}</Text>
+      </View>
+    );
+  };
+
+  // 질문 기반 일기 렌더링
+  const renderPromptBasedContent = (journal: Journal) => {
+    const answers = journal.journal_entries?.filter((entry) => entry.entry_type === 'answer') || [];
+
+    // 답변을 order 순서대로 정렬
+    const sortedAnswers = [...answers].sort((a, b) => a.entry_order - b.entry_order);
+
+    return (
+      <View style={styles.contentContainer}>
+        {sortedAnswers.map((entry, index) => {
+          const questionIndex = entry.entry_order - 1;
+          const question = questions[questionIndex];
+
+          return (
+            <View key={entry.id} style={styles.qaCard}>
+              <View style={styles.questionSection}>
+                <View style={styles.questionHeader}>
+                  <View style={styles.questionNumber}>
+                    <Text style={styles.questionNumberText}>Q{index + 1}</Text>
+                  </View>
+                  <Text style={styles.questionText}>
+                    {question?.content || `질문 ${index + 1}`}
+                  </Text>
+                </View>
+              </View>
+
+              {/* 답변 */}
+              <View style={styles.answerSection}>
+                <Text style={styles.answerText}>{entry.text_content}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const handleDeleteJournal = () => {
+    if (!journal || !currentUserId) {
+      Toast.show({
+        type: 'error',
+        text1: '삭제 오류',
+        text2: '일기를 삭제할 수 없습니다.',
+        visibilityTime: 2000,
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    deleteJournal(
+      { journalId: journal.id, userId: currentUserId },
+      {
+        onSuccess: () => {
+          Toast.show({
+            type: 'success',
+            text1: '일기 삭제 완료',
+            text2: '일기가 성공적으로 삭제되었습니다.',
+            visibilityTime: 2000,
+          });
+          navigation.goBack();
+        },
+        onError: (error) => {
+          console.error('Delete journal error:', error);
+          Toast.show({
+            type: 'error',
+            text1: '삭제 실패',
+            text2: '일기 삭제 중 오류가 발생했습니다.',
+            visibilityTime: 3000,
+          });
+        },
+        onSettled: () => {
+          setIsDeleting(false);
+          setDeleteConfirmVisible(false);
+        },
+      }
+    );
+  };
+
+  const handleEditJournal = () => {
+    // TODO: 수정 기능 구현
+    Toast.show({
+      type: 'info',
+      text1: '수정 기능',
+      text2: '일기 수정 기능은 곧 추가될 예정입니다.',
+      visibilityTime: 2000,
+    });
+  };
+
+  const handleReportJournal = () => {
+    // TODO: 신고 기능 구현
+    Toast.show({
+      type: 'info',
+      text1: '신고 기능',
+      text2: '신고 기능은 곧 추가될 예정입니다.',
+      visibilityTime: 2000,
+    });
+  };
+
+  const actionSheetOptions = isOwnPost
+    ? [
+        {
+          label: '수정하기',
+          icon: 'create-outline',
+          onPress: handleEditJournal,
+        },
+        {
+          label: '삭제하기',
+          icon: 'trash-outline',
+          onPress: () => setDeleteConfirmVisible(true),
+          destructive: true,
+        },
+      ]
+    : [
+        {
+          label: '신고하기',
+          icon: 'flag-outline',
+          onPress: handleReportJournal,
+        },
+      ];
 
   if (isLoading) {
     return (
@@ -45,50 +218,21 @@ const JournalDetailScreen = () => {
     );
   }
 
-  const formatDateDisplay = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear().toString().slice(-2)}년 ${String(date.getMonth() + 1).padStart(2, '0')}월 ${String(date.getDate()).padStart(2, '0')}일`;
-  };
-
-  const getDayOfWeek = (dateString: string) => {
-    const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-    const date = new Date(dateString);
-    return days[date.getDay()];
-  };
-
-  const handleMoreOptions = () => {
-    console.log('More options for journal:', journal.id);
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.navigationBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.black} />
-        </TouchableOpacity>
-        <View style={styles.navTitleContainer} />
-        <TouchableOpacity onPress={handleMoreOptions} style={styles.navButton}>
-          <Ionicons name="ellipsis-vertical" size={22} color={colors.black} />
-        </TouchableOpacity>
-      </View>
-
+    <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContentContainer}>
-        <View style={styles.journalHeaderContainer}>
-          <View style={styles.dateAndAuthorContainer}>
-            <Text style={styles.dateText}>{formatDateDisplay(journal.date)}</Text>
-            <Text style={styles.dayAuthorText}>{getDayOfWeek(journal.date)}</Text>
-          </View>
-          {journal.emotion?.img_url && (
-            <Image source={{ uri: journal.emotion.img_url }} style={styles.emotionIcon} />
-          )}
+        <View style={styles.headerContainer}>
+          <JournalHeader date={new Date(journal.date)} emotion={journal.emotion} />
         </View>
-
         <View style={styles.separator} />
 
-        <Text style={styles.journalContentText}>{journal.content}</Text>
+        {/* 일기 모드에 따라 다른 컨텐츠 렌더링 */}
+        {journal.mode === 'prompt_based'
+          ? renderPromptBasedContent(journal)
+          : renderFreeWritingContent(journal)}
       </ScrollView>
 
-      <View style={styles.bottomActionsContainer}>
+      <View style={[styles.bottomActionsContainer, { paddingBottom: spacing[3] + insets.bottom }]}>
         <View style={styles.actionItem}>
           <Ionicons name="chatbubble-outline" size={20} color={colors['grey-02']} />
           <Text style={styles.actionText}>댓글(0)</Text>
@@ -98,7 +242,26 @@ const JournalDetailScreen = () => {
           <Text style={styles.actionText}>좋아요</Text>
         </View>
       </View>
-    </SafeAreaView>
+
+      {/* ActionSheet */}
+      <ActionSheet
+        visible={actionSheetVisible}
+        onClose={() => setActionSheetVisible(false)}
+        options={actionSheetOptions}
+        title={isOwnPost ? '일기 관리' : '신고하기'}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmationModal
+        visible={deleteConfirmVisible}
+        title="일기 삭제"
+        message="정말로 이 일기를 삭제하시겠습니까?&#10;삭제된 일기는 복구할 수 없습니다."
+        confirmText={isDeleting ? '삭제 중...' : '삭제'}
+        confirmButtonColor={colors.danger.DEFAULT}
+        onConfirm={isDeleting ? () => {} : handleDeleteJournal}
+        onClose={() => !isDeleting && setDeleteConfirmVisible(false)}
+      />
+    </View>
   );
 };
 
@@ -108,13 +271,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   centered: {
-    // 로딩 및 에러 시 중앙 정렬을 위한 스타일
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorText: {
     color: colors.secondary.DEFAULT,
-    fontSize: fontStyles['base-normal']?.fontSize || 16,
+    fontSize: fontStyles['base-normal'].fontSize,
+  },
+  headerButton: {
+    padding: spacing[2],
   },
   navigationBar: {
     flexDirection: 'row',
@@ -130,65 +295,84 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContentContainer: {
-    paddingHorizontal: spacing[4],
     paddingBottom: spacing[4],
   },
-  journalHeaderContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: spacing[5],
-    marginBottom: spacing[4],
-  },
-  dateAndAuthorContainer: {},
-  dateText: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontStyles['base-tight']?.fontSize || 16, // 'base-tight'로 수정
-    color: colors.black,
-    lineHeight: fontStyles['base-tight']?.lineHeight || 24, // 'base-tight'로 수정
-  },
-  dayAuthorText: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontStyles['xs-normal']?.fontSize || 12,
-    color: colors['grey-02'],
-    lineHeight: fontStyles['xs-normal']?.lineHeight || 18,
-    marginTop: spacing[1],
-  },
-  emotionIcon: {
-    width: 40,
-    height: 40,
-  },
-  separator: {
-    height: 2,
-    backgroundColor: colors['light-grey-01'],
-    marginVertical: spacing[4],
-  },
   journalContentText: {
-    fontFamily: fonts.regular,
-    fontSize: fontStyles['sm-normal']?.fontSize || 14, // Figma 14px Regular -> sm-normal
-    color: colors.black,
-    lineHeight: fontStyles['sm-normal']?.lineHeight || 21,
+    ...fontStyles['base-normal'],
+    color: colors['dark-grey-02'],
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[4],
   },
   bottomActionsContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    paddingBottom: spacing[2],
+    paddingTop: spacing[4],
     borderTopWidth: 1,
-    borderTopColor: colors['light-grey-01'],
+    borderTopColor: colors['light-grey-02'],
     backgroundColor: colors.white,
+    gap: spacing[4],
   },
   actionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: spacing[4],
   },
   actionText: {
-    fontFamily: fonts.regular,
-    fontSize: fontStyles['xs-normal']?.fontSize || 12,
+    ...fontStyles['sm-normal'],
     color: colors['grey-01'],
     marginLeft: spacing[1],
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors['light-grey-02'],
+  },
+  headerContainer: {
+    paddingHorizontal: spacing[4],
+  },
+  contentContainer: {
+    paddingVertical: spacing[4],
+  },
+  qaCard: {
+    marginHorizontal: spacing[4],
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: spacing[4],
+    marginBottom: spacing[4],
+    borderWidth: 1,
+    borderColor: colors['light-grey-02'],
+  },
+  questionSection: {
+    marginBottom: spacing[3],
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  questionNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary.light,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+    marginTop: spacing[0.5],
+  },
+  questionNumberText: {
+    ...fontStyles['sm-tight'],
+    color: colors.primary.DEFAULT,
+  },
+  questionText: {
+    ...fontStyles['base-tight'],
+    color: colors['dark-grey-02'],
+    flex: 1,
+  },
+  answerSection: {},
+  answerText: {
+    ...fontStyles['base-normal'],
+    color: colors['dark-grey-01'],
   },
 });
 
