@@ -47,11 +47,11 @@ const styles = StyleSheet.create({
     width: width * 0.9,
     backgroundColor: colors.white,
     borderRadius: spacing[3],
-    padding: spacing[4],
+    padding: spacing[6],
     maxHeight: '80%',
   },
   modalTitle: {
-    ...fontStyles['lg-tight'],
+    ...fontStyles['xl-tight'],
     color: colors['dark-grey-01'],
     marginBottom: spacing[4],
     textAlign: 'left', // 좌측 정렬

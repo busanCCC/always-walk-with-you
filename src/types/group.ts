@@ -1,10 +1,10 @@
 export interface Group {
   id: string; // uuid
   name: string;
-  description: string;
+  description?: string;
   campus?: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
   // 계산된 필드
   member_count?: number; // API에서 계산하거나 추가 쿼리로 가져올 수 있음
   is_admin?: boolean; // 현재 사용자가 관리자인지 여부 (그룹 멤버십 정보)
@@ -44,4 +44,13 @@ export interface GroupMemberWithUser extends GroupMembership {
 // API 응답 타입
 export interface GroupWithMembershipDetails extends Group {
   membership?: GroupMembership;
+}
+
+export interface UserGroup {
+  id: string;
+  user_id: string;
+  group_id: string;
+  role: 'member' | 'leader' | 'admin';
+  joined_at: string;
+  group: Group;
 }

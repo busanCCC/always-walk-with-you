@@ -10,18 +10,19 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, fontStyles, spacing } from '@/constants/theme';
+import theme, { colors, fontStyles, spacing } from '@/constants/theme';
 import EmotionIcon from '@/components/common/EmotionIcon';
+import AlertModal from '@/components/common/AlertModal';
 import { Journal } from '@/types/journal';
 import { useWeeklyJournalsQuery } from '@/queries/journalQueries';
 import { formatDate as utilFormatDate, weekDays } from '@/utils/dateUtils';
+import { hasJournalForDate, getTodayString } from '@/utils/journalUtils';
 
 import PlusIcon from '@/assets/svg/plus-icon.svg';
-import ChevronRightIcon from '@/assets/svg/chevron-right.svg';
-import PrayerIcon from '@/assets/svg/user-icon.svg';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/navigation/types';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 interface WeekDayData {
   day: string;
@@ -35,11 +36,25 @@ interface WeekDayData {
   isWritable: boolean;
 }
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'WebView'>;
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { data: journals, isLoading, isError, error, refetch } = useWeeklyJournalsQuery();
+
+  const [alertModal, setAlertModal] = React.useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({ visible: false, title: '', message: '' });
+
+  const showAlert = (title: string, message: string) => {
+    setAlertModal({ visible: true, title, message });
+  };
+
+  const hideAlert = () => {
+    setAlertModal({ visible: false, title: '', message: '' });
+  };
 
   const weekData: WeekDayData[] = React.useMemo(() => {
     const todayDate = new Date();
@@ -74,6 +89,32 @@ const HomeScreen = () => {
     Linking.openURL(urlToOpen).catch((err) => console.error("Couldn't load page", err));
   };
 
+  const handleDayPress = (dayData: WeekDayData) => {
+    if (dayData.journal) {
+      // 일기가 있는 경우 상세보기로 이동
+      navigation.navigate('JournalDetail', { journalId: dayData.journal.id });
+    } else {
+      // 일기가 없는 경우 해당 날짜로 일기 작성으로 이동
+      navigation.navigate('SelectJournalMode', { selectedDate: dayData.fullDate });
+    }
+  };
+
+  const handleWritePromptPress = () => {
+    const todayString = getTodayString();
+
+    // 오늘 날짜에 이미 일기가 있는지 확인
+    if (hasJournalForDate(journals || [], todayString)) {
+      showAlert(
+        '일기 작성 제한',
+        '오늘은 이미 일기를 작성했습니다.\n다른 날의 일기를 작성하려면 캘린더에서 빈 날짜를 선택해주세요.'
+      );
+      return;
+    }
+
+    // 오늘 날짜에 일기가 없으면 일기 작성으로 이동
+    navigation.navigate('SelectJournalMode', {});
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.safeArea, styles.centered]}>
@@ -106,7 +147,11 @@ const HomeScreen = () => {
 
           <View style={styles.weekCalendar}>
             {weekData.map((item, index) => (
-              <TouchableOpacity key={index} style={styles.dayItem}>
+              <TouchableOpacity
+                key={index}
+                style={styles.dayItem}
+                onPress={() => handleDayPress(item)}
+                activeOpacity={0.7}>
                 <Text style={[styles.dayName, item.isActive && styles.activeDayText]}>
                   {item.day}
                 </Text>
@@ -130,7 +175,7 @@ const HomeScreen = () => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.writePrompt}>
+        <TouchableOpacity style={styles.writePrompt} onPress={handleWritePromptPress}>
           <Text style={styles.writePromptText}>영성 일기 작성하기</Text>
         </TouchableOpacity>
 
@@ -163,7 +208,7 @@ const HomeScreen = () => {
                   url: 'https://www.kccc.org/?p=qt',
                 });
               }}>
-              <ChevronRightIcon width={22} height={22} stroke={colors['grey-03']} />
+              <Ionicons name="chevron-forward" size={18} color={colors['grey-03']} />
             </TouchableOpacity>
           </View>
         </View>
@@ -173,9 +218,6 @@ const HomeScreen = () => {
 
           <View style={styles.prayerCard}>
             <View style={styles.prayerCardHeader}>
-              <View style={styles.prayerCardIcon}>
-                <PrayerIcon width={10.5} height={12} />
-              </View>
               <Text style={styles.prayerCardName}>가야대학교</Text>
             </View>
             <Text style={styles.prayerCardContent}>
@@ -188,9 +230,6 @@ const HomeScreen = () => {
           {/* 기도 제목 카드 2 */}
           <View style={styles.prayerCard}>
             <View style={styles.prayerCardHeader}>
-              <View style={styles.prayerCardIcon}>
-                <PrayerIcon width={10.5} height={12} />
-              </View>
               <Text style={styles.prayerCardName}>부산대학교 장전캠퍼스</Text>
             </View>
             <Text style={styles.prayerCardContent}>
@@ -203,10 +242,7 @@ const HomeScreen = () => {
           {/* 기도 제목 카드 3 */}
           <View style={styles.prayerCard}>
             <View style={styles.prayerCardHeader}>
-              <View style={styles.prayerCardIcon}>
-                <PrayerIcon width={10.5} height={12} />
-              </View>
-              <Text style={styles.prayerCardName}>부산대학교 밀양캠 · 여준원 순장</Text>
+              <Text style={styles.prayerCardName}>부산대학교 밀양캠</Text>
             </View>
             <Text style={styles.prayerCardContent}>
               캠퍼스에 하나님과 진실한 교제를 사모하는 사람들로 기도하는 자가 많이 세워질 수 있길
@@ -215,10 +251,13 @@ const HomeScreen = () => {
             </Text>
           </View>
         </View>
-
-        {/* 하단 여백 */}
-        <View style={{ height: 60 }} />
       </ScrollView>
+      <AlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        onClose={hideAlert}
+      />
     </View>
   );
 };
@@ -275,7 +314,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   dayName: {
-    ...fontStyles['xs-normal'],
+    ...fontStyles['sm-normal'],
     color: colors['grey-01'],
     marginBottom: spacing['1'],
   },
@@ -318,7 +357,7 @@ const styles = StyleSheet.create({
     marginVertical: spacing['8'],
     backgroundColor: colors.primary.light,
     borderRadius: 16,
-    height: 41,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: 'rgba(149, 149, 149, 0.1)',
@@ -331,7 +370,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   writePromptText: {
-    ...fontStyles['sm-tight'],
+    ...fontStyles['base-tight'],
     color: colors.primary.DEFAULT,
   },
   devotionalSection: {
@@ -435,20 +474,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing['5'],
   },
   prayerCard: {
-    backgroundColor: colors.white,
+    backgroundColor: theme.colors.white,
     borderRadius: 16,
+    padding: theme.spacing[4],
+    marginBottom: theme.spacing[3],
     borderWidth: 1,
-    borderColor: colors['light-grey-01'],
-    marginBottom: spacing['4'],
-    padding: spacing['4'],
-    shadowColor: 'rgba(149, 149, 149, 0.1)',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: theme.colors['light-grey-02'],
   },
   prayerCardHeader: {
     flexDirection: 'row',

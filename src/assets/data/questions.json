@@ -1,0 +1,30 @@
+[
+  {
+    "id": "q1",
+    "content": "오늘 하루 중 가장 기억에 남는 순간은 뭐였나요?",
+    "category": "reflection",
+    "placeholder": "친구랑 웃겼던 일, 수업 중에 있었던 일 등",
+    "order_index": 1
+  },
+  {
+    "id": "q2",
+    "content": "하나님이 오늘 내게 어떤 마음을 주신 것 같나요?",
+    "category": "spiritual",
+    "placeholder": "용서하라는 마음, 위로해주시는 느낌 등",
+    "order_index": 2
+  },
+  {
+    "id": "q3",
+    "content": "오늘 감사했던 일 하나만 적어볼까요?",
+    "category": "gratitude",
+    "placeholder": "날씨가 좋아서 기분이 좋았어요, 맛있는 음식을 먹었어요 등",
+    "order_index": 3
+  },
+  {
+    "id": "q4",
+    "content": "오늘 기도하고 싶은 제목이 있나요?",
+    "category": "prayer",
+    "placeholder": "친구 관계, 가족, 신앙 등",
+    "order_index": 4
+  }
+]

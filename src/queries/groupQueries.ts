@@ -12,7 +12,9 @@ import {
   GroupWithMembershipDetails,
   UpdateGroupPayload,
   GroupMemberWithUser,
+  UserGroup,
 } from '@/types/group';
+import { useAuthStore } from '@/store/authStore';
 
 // 쿼리 키 상수
 export const GROUP_KEYS = {
@@ -22,15 +24,24 @@ export const GROUP_KEYS = {
   details: () => [...GROUP_KEYS.all, 'detail'] as const,
   detail: (id: string) => [...GROUP_KEYS.details(), id] as const,
   members: (id: string) => [...GROUP_KEYS.detail(id), 'members'] as const,
+  userGroups: (userId?: string) => [...GROUP_KEYS.all, 'userGroups', userId] as const,
 };
 
 /**
  * 내가 속한 모든 순 그룹 목록을 불러오는 훅
  */
 export const useUserGroups = () => {
+  const userId = useAuthStore((state) => state.session?.user?.id);
+
   return useQuery({
-    queryKey: GROUP_KEYS.lists(),
-    queryFn: fetchUserGroups,
+    queryKey: GROUP_KEYS.userGroups(userId),
+    queryFn: async () => {
+      if (!userId) {
+        return [];
+      }
+      return fetchUserGroups(userId);
+    },
+    enabled: !!userId,
   });
 };
 
@@ -102,5 +113,24 @@ export const useGroupMembers = (groupId: string | undefined) => {
     queryKey: groupId ? GROUP_KEYS.members(groupId) : ['groupMembers'],
     queryFn: () => fetchGroupMembers(groupId!),
     enabled: !!groupId,
+  });
+};
+
+/**
+ * 현재 사용자가 속한 그룹들을 가져오는 쿼리 훅 (순 공유용)
+ */
+export const useUserGroupsForSharing = () => {
+  const userId = useAuthStore((state) => state.session?.user?.id);
+
+  return useQuery<UserGroup[], Error>({
+    queryKey: GROUP_KEYS.userGroups(userId),
+    queryFn: async () => {
+      if (!userId) {
+        return [];
+      }
+      return fetchUserGroups(userId);
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5, // 5분 캐시
   });
 };

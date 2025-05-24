@@ -1,16 +1,36 @@
-export type JournalMode = 'public' | 'private' | 'group';
+export type JournalMode = 'free_writing' | 'prompt_based' | 'handwriting_upload';
+
+export interface Question {
+  id: string;
+  content: string;
+  category?: string;
+  placeholder?: string;
+  order_index: number;
+}
+
+export type JournalEntryType = 'general' | 'answer';
+
+export interface JournalEntry {
+  id: string;
+  journal_id: string;
+  entry_type: JournalEntryType;
+  text_content?: string | null;
+  entry_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export interface Journal {
   id: string; // uuid
   user_id: string; // uuid
   date: string; // date string (e.g., '2023-10-26')
-  content: string | null;
   mode: JournalMode;
   emotion_id: string | null; // uuid
   shared_groups: string[] | null; // uuid[]
   created_at: string; // timestamp with time zone
   updated_at: string; // timestamp with time zone
   emotion?: Emotion | null; // API join 또는 별도 조회 후 채워질 수 있음
+  journal_entries?: JournalEntry[] | null; // 새로 추가
 }
 
 export interface Emotion {
