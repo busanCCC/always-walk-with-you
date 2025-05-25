@@ -10,15 +10,32 @@ import {
 } from 'react-native';
 import StyledText from '@/components/common/StyledText';
 import KakaoIcon from '@/assets/svg/kakao-icon.svg';
+import GoogleIcon from '@/assets/svg/google-icon.svg';
 import theme from '@/constants/theme';
 import logo from '@/assets/images/logo.png';
-import { useSignInWithKakaoMutation } from '@/queries/authQueries';
+import { useSignInWithKakaoMutation, useSignInWithGoogleMutation } from '@/queries/authQueries';
 
 export default function LoginScreen() {
-  const { mutate: signInWithKakao, isError, isPending, error } = useSignInWithKakaoMutation();
+  const {
+    mutate: signInWithKakao,
+    isError: isKakaoError,
+    isPending: isKakaoPending,
+    error: kakaoError,
+  } = useSignInWithKakaoMutation();
+
+  const {
+    mutate: signInWithGoogle,
+    isError: isGoogleError,
+    isPending: isGooglePending,
+    error: googleError,
+  } = useSignInWithGoogleMutation();
 
   const handleKakaoLogin = async () => {
     signInWithKakao();
+  };
+
+  const handleGoogleLogin = async () => {
+    signInWithGoogle();
   };
 
   const openLink = (url: string) => {
@@ -37,15 +54,26 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.kakaoButton}
             onPress={handleKakaoLogin}
-            disabled={isPending}>
+            disabled={isKakaoPending}>
             <KakaoIcon width={20} height={20} style={styles.kakaoIcon} />
             <StyledText variant="base-normal" colorKey="dark-grey-02">
-              {isPending ? '로그인 중...' : '카카오로 3초만에 시작하기'}
+              {isKakaoPending ? '로그인 중...' : '카카오로 3초만에 시작하기'}
             </StyledText>
           </TouchableOpacity>
-          {isError && (
+
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleLogin}
+            disabled={isGooglePending}>
+            <GoogleIcon width={20} height={20} style={styles.googleIcon} />
+            <StyledText variant="base-normal" colorKey="dark-grey-02">
+              {isGooglePending ? '로그인 중...' : '구글로 시작하기'}
+            </StyledText>
+          </TouchableOpacity>
+
+          {(isKakaoError || isGoogleError) && (
             <StyledText colorKey="red-500" variant="sm-normal">
-              로그인 중 오류가 발생했습니다: {error?.message}
+              로그인 중 오류가 발생했습니다: {kakaoError?.message || googleError?.message}
             </StyledText>
           )}
           <StyledText variant="xs-normal" colorKey="grey-02" style={styles.termsInfoText}>
@@ -85,7 +113,7 @@ const styles = StyleSheet.create({
   logo: {
     height: 80,
     resizeMode: 'contain',
-    marginBottom: theme.spacing['8'],
+    marginBottom: theme.spacing['24'],
   },
   bottomContainer: {
     position: 'absolute',
@@ -100,7 +128,7 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing['5'],
   },
   kakaoButton: {
-    marginBottom: theme.spacing['10'],
+    marginBottom: theme.spacing['3'],
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
@@ -111,6 +139,22 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing['3'],
   },
   kakaoIcon: {
+    marginRight: theme.spacing['2'],
+  },
+  googleButton: {
+    marginBottom: theme.spacing['10'],
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.spacing['2'],
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dadce0',
+    paddingHorizontal: theme.spacing['5'],
+    paddingVertical: theme.spacing['3'],
+  },
+  googleIcon: {
     marginRight: theme.spacing['2'],
   },
   termsInfoText: {

@@ -270,3 +270,120 @@ export const deleteJournal = async (journalId: string, userId: string): Promise<
     throw err;
   }
 };
+
+/**
+ * 영성일기를 수정합니다.
+ * @param journalId 수정할 영성일기의 ID
+ * @param userId 현재 사용자 ID (권한 확인용)
+ * @param updateData 수정할 데이터
+ */
+export const updateJournal = async (
+  journalId: string,
+  userId: string,
+  updateData: {
+    emotion_id?: string;
+    content?: string;
+    answers?: Array<{ answer: string; order: number }>;
+    shared_groups?: string[];
+  }
+): Promise<Journal> => {
+  if (!journalId) {
+    throw new Error('Journal ID is required.');
+  }
+
+  if (!userId) {
+    throw new Error('User ID is required.');
+  }
+
+  try {
+    // 먼저 해당 일기의 소유자인지 확인
+    const { data: journal, error: fetchError } = await supabase
+      .from('journals')
+      .select('user_id, mode')
+      .eq('id', journalId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching journal for update check:', fetchError);
+      throw fetchError;
+    }
+
+    if (!journal) {
+      throw new Error('Journal not found.');
+    }
+
+    if (journal.user_id !== userId) {
+      throw new Error('You do not have permission to update this journal.');
+    }
+
+    // 1. 일기 메타데이터 업데이트 (감정, 순 공유)
+    if (updateData.emotion_id !== undefined || updateData.shared_groups !== undefined) {
+      const updateFields: any = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (updateData.emotion_id !== undefined) {
+        updateFields.emotion_id = updateData.emotion_id;
+      }
+
+      if (updateData.shared_groups !== undefined) {
+        updateFields.shared_groups = updateData.shared_groups;
+      }
+
+      const { error: updateError } = await supabase
+        .from('journals')
+        .update(updateFields)
+        .eq('id', journalId)
+        .eq('user_id', userId);
+
+      if (updateError) {
+        console.error('Error updating journal metadata:', updateError);
+        throw updateError;
+      }
+    }
+
+    // 2. 일기 내용 업데이트
+    if (journal.mode === 'free_writing' && updateData.content !== undefined) {
+      // 자유 글쓰기의 경우 - 기존 엔트리 업데이트
+      const { error: entryError } = await supabase
+        .from('journal_entries')
+        .update({
+          text_content: updateData.content,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('journal_id', journalId)
+        .eq('entry_type', 'general');
+
+      if (entryError) {
+        console.error('Error updating journal entry:', entryError);
+        throw entryError;
+      }
+    } else if (journal.mode === 'prompt_based' && updateData.answers) {
+      // 질문 기반 글쓰기의 경우 - 답변 엔트리들 업데이트
+      for (const answer of updateData.answers) {
+        const { error: entryError } = await supabase
+          .from('journal_entries')
+          .update({
+            text_content: answer.answer,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('journal_id', journalId)
+          .eq('entry_type', 'answer')
+          .eq('entry_order', answer.order);
+
+        if (entryError) {
+          console.error('Error updating journal answer entry:', entryError);
+          throw entryError;
+        }
+      }
+    }
+
+    // 3. 업데이트된 일기 데이터 반환
+    const updatedJournal = await fetchJournalById(journalId);
+    console.log(`Journal ${journalId} updated successfully`);
+    return updatedJournal;
+  } catch (err) {
+    console.error('An unexpected error occurred while updating journal:', err);
+    throw err;
+  }
+};

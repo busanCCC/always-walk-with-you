@@ -37,15 +37,20 @@ const GroupShareBottomSheet = forwardRef<GroupShareBottomSheetRef, GroupShareBot
     useImperativeHandle(ref, () => ({
       present: () => {
         setSelectedGroupIds(initialSelectedGroups);
+        setIsInitialized(true);
         bottomSheetModalRef.current?.present();
       },
       dismiss: () => bottomSheetModalRef.current?.dismiss(),
     }));
 
-    // selectedGroupIds가 변경될 때마다 부모 컴포넌트에 전달
+    // selectedGroupIds가 변경될 때마다 부모 컴포넌트에 전달 (초기화 시점 제외)
+    const [isInitialized, setIsInitialized] = useState(false);
+
     useEffect(() => {
-      onSelectGroups(selectedGroupIds);
-    }, [selectedGroupIds, onSelectGroups]);
+      if (isInitialized) {
+        onSelectGroups(selectedGroupIds);
+      }
+    }, [selectedGroupIds, onSelectGroups, isInitialized]);
 
     const handleGroupPress = useCallback((groupId: string) => {
       setSelectedGroupIds((prev) => {
@@ -58,8 +63,9 @@ const GroupShareBottomSheet = forwardRef<GroupShareBottomSheetRef, GroupShareBot
     }, []);
 
     const handleConfirm = useCallback(() => {
+      onSelectGroups(selectedGroupIds);
       bottomSheetModalRef.current?.dismiss();
-    }, []);
+    }, [selectedGroupIds, onSelectGroups]);
 
     const renderBackdrop = useCallback(
       (props: any) => (

@@ -17,8 +17,8 @@ import GroupDetailScreen from '@/screens/GroupDetailScreen';
 import JournalCalendarScreen from '@/screens/JournalCalendarScreen';
 import JournalDetailScreen from '@/screens/JournalDetailScreen';
 import SelectJournalModeScreen from '@/screens/SelectJournalModeScreen';
-import CreateJournalFreeWriteScreen from '@/screens/CreateJournalFreeWriteScreen';
-import CreateJournalPromptBasedScreen from '@/screens/CreateJournalPromptBasedScreen';
+import CreateJournalScreen from '@/screens/CreateJournalScreen';
+import EditJournalScreen from '@/screens/EditJournalScreen';
 
 // 스크린 타입 정의
 export type AuthStackParamList = {
@@ -114,12 +114,17 @@ export default function AppNavigator() {
               />
               <Stack.Screen
                 name="CreateJournalFreeWrite"
-                component={CreateJournalFreeWriteScreen}
+                component={CreateJournalScreen}
                 options={{ headerShown: true }}
               />
               <Stack.Screen
                 name="CreateJournalPrompt"
-                component={CreateJournalPromptBasedScreen}
+                component={CreateJournalScreen}
+                options={{ headerShown: true }}
+              />
+              <Stack.Screen
+                name="EditJournal"
+                component={EditJournalScreen}
                 options={{ headerShown: true }}
               />
               <Stack.Screen
