@@ -370,6 +370,7 @@ const JournalCalendarScreen = () => {
           hideExtraDays={true}
           renderArrow={renderArrow}
           dayComponent={dayComponent}
+          enableSwipeMonths={true}
           renderHeader={renderCustomHeader}
           theme={{
             backgroundColor: colors.white,
@@ -391,7 +392,7 @@ const JournalCalendarScreen = () => {
       </ScrollView>
       {/* FAB */}
       <TouchableOpacity style={styles.fabContainer} onPress={handleFabPress}>
-        <Ionicons name="create-outline" size={30} color={colors.primary.DEFAULT} />
+        <Ionicons name="create-outline" size={32} color={colors.primary.DEFAULT} />
       </TouchableOpacity>
       <AlertModal
         visible={alertModal.visible}
@@ -449,7 +450,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: spacing[2],
-    marginBottom: spacing[1],
   },
   dayText: {
     ...fontStyles['base-normal'],
@@ -461,24 +461,24 @@ const styles = StyleSheet.create({
     color: colors['light-grey-02'],
   },
   emotionImage: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
   },
   placeholderCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors['light-grey-01'],
   },
   todayBlueCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.primary.light,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -498,8 +498,10 @@ const styles = StyleSheet.create({
     bottom: spacing[4],
     right: spacing[4],
     backgroundColor: colors.primary.light,
-    padding: spacing[2],
-    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing[3],
+    borderRadius: 36,
   },
   fabText: {
     ...fontStyles['base-normal'],

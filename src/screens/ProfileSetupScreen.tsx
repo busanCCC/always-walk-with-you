@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -37,6 +37,7 @@ const ROLES = [
 
 export default function ProfileSetupScreen() {
   const user = useAuthStore((state) => state.user);
+  const profileCompleted = useAuthStore((state) => state.profileCompleted);
   const setProfileCompleted = useAuthStore((state) => state.setProfileCompleted);
   const signOut = useAuthStore((state) => state.signOut);
   const navigation = useNavigation<ProfileSetupScreenNavigationProp>();
@@ -59,6 +60,16 @@ export default function ProfileSetupScreen() {
   const hideAlert = () => {
     setAlertModal({ visible: false, title: '', message: '' });
   };
+
+  // profileCompleted 상태 변경 감지하여 네비게이션 처리
+  useEffect(() => {
+    if (profileCompleted) {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main' }],
+      });
+    }
+  }, [profileCompleted, navigation]);
 
   const handleClose = () => {
     signOut();
@@ -103,10 +114,7 @@ export default function ProfileSetupScreen() {
         showAlert('오류', '프로필 저장 중 문제가 발생했습니다: ' + error.message);
       } else {
         setProfileCompleted(true);
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Main' }],
-        });
+        // AppNavigator가 profileCompleted 상태 변경을 감지하여 자동으로 Main으로 이동됩니다
       }
     } catch (e) {
       console.error('프로필 저장 예외:', e);
