@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
+import { initializeGoogleSignIn } from '@/apis/authApi';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,6 +23,7 @@ export default function App() {
 
   useEffect(() => {
     initializeAuth();
+    initializeGoogleSignIn();
   }, [initializeAuth]);
 
   useEffect(() => {

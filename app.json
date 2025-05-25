@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "everyday-companion",
-    "slug": "everyday-companion",
-    "scheme": "everydaycompanionauth",
+    "name": "always-walk-with-you",
+    "slug": "always-walk-with-you",
+    "scheme": "alwayswalkwithyouauth",
     "version": "1.0.0",
-    "entryFile": "./src/app/App.tsx",
+    "entryPoint": "./src/app/App.tsx",
     "web": {
       "favicon": "./src/assets/images/logo.png"
     },
@@ -18,17 +18,19 @@
       [
         "expo-splash-screen",
         {
+          "image": "./src/assets/images/logo.png",
           "backgroundColor": "#2584F0",
           "imageWidth": 150,
-          "resizeMode": "cover"
+          "resizeMode": "contain"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin"
     ],
     "splash": {
       "backgroundColor": "#2584F0",
-      "image": "./src/assets/images/splash/logo.png",
-      "imageResizeMode": "cover"
+      "image": "./src/assets/images/logo.png",
+      "imageResizeMode": "contain"
     },
     "orientation": "portrait",
     "icon": "./src/assets/images/logo.png",
@@ -36,14 +38,14 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.everydaycompanion"
+      "bundleIdentifier": "com.busancc.alwayswalkwithyou"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/images/logo.png",
         "backgroundColor": "#2584F0"
       },
-      "package": "com.anonymous.everydaycompanion"
+      "package": "com.busancc.alwayswalkwithyou"
     }
   }
 }

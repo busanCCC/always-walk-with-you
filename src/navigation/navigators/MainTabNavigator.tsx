@@ -35,6 +35,7 @@ export function MainTabNavigator() {
         tabBarInactiveTintColor: theme.colors['grey-02'],
         tabBarStyle: {
           backgroundColor: theme.colors.white,
+          height: 60,
         },
         tabBarLabelStyle: {
           fontSize: theme.fontStyles['xs-normal'].fontSize,

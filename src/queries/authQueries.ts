@@ -1,8 +1,12 @@
 import { useMutation, UseMutationResult } from '@tanstack/react-query';
 import { AuthError } from '@supabase/supabase-js';
 import { useAuthStore } from '@/store/authStore';
-import { signInWithKakao as apiSignInWithKakao, signOut as apiSignOut } from '@/apis/authApi';
-import type { KakaoLoginResult } from '@/apis/authApi';
+import {
+  signInWithKakao as apiSignInWithKakao,
+  signInWithGoogle as apiSignInWithGoogle,
+  signOut as apiSignOut,
+} from '@/apis/authApi';
+import type { KakaoLoginResult, GoogleLoginResult } from '@/apis/authApi';
 
 export const authQueryKeys = {
   session: ['session'] as const,
@@ -33,6 +37,36 @@ export const useSignInWithKakaoMutation = (): UseMutationResult<
     },
     onError: (error: AuthError) => {
       console.error('Error signing in with Kakao (mutation error):', error.message);
+      setSessionData(null, null);
+    },
+  });
+};
+
+export const useSignInWithGoogleMutation = (): UseMutationResult<
+  GoogleLoginResult,
+  AuthError,
+  void,
+  unknown
+> => {
+  const { setSessionData } = useAuthStore.getState();
+
+  return useMutation<GoogleLoginResult, AuthError, void, unknown>({
+    mutationFn: apiSignInWithGoogle,
+    onSuccess: (data: GoogleLoginResult) => {
+      if (data.error) {
+        console.error('Error signing in with Google (returned by API):', data.error);
+        setSessionData(null, null);
+      } else if (data.session && data.user) {
+        setSessionData(data.session, data.user);
+      } else {
+        console.error(
+          'signInWithGoogleMutation: Session or user data is missing and no error reported.'
+        );
+        setSessionData(null, null);
+      }
+    },
+    onError: (error: AuthError) => {
+      console.error('Error signing in with Google (mutation error):', error.message);
       setSessionData(null, null);
     },
   });

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fontStyles } from '@/constants/theme';
 import { RootStackParamList } from '@/navigation/types';
@@ -21,14 +22,21 @@ import JournalHeader from '@/components/common/JournalHeader';
 import CustomHeader from '@/components/common/CustomHeader';
 import ActionSheet from '@/components/common/ActionSheet';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
+import SharedGroupsViewBottomSheet, {
+  SharedGroupsViewBottomSheetRef,
+} from '@/components/common/SharedGroupsViewBottomSheet';
 import { Journal } from '@/types/journal';
 import { useAuthStore } from '@/store/authStore';
 import Toast from 'react-native-toast-message';
 
 type JournalDetailScreenRouteProp = RouteProp<RootStackParamList, 'JournalDetail'>;
+type JournalDetailScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'JournalDetail'
+>;
 
 const JournalDetailScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<JournalDetailScreenNavigationProp>();
   const route = useRoute<JournalDetailScreenRouteProp>();
   const journalId = route.params?.journalId;
   const insets = useSafeAreaInsets();
@@ -41,6 +49,7 @@ const JournalDetailScreen = () => {
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const sharedGroupsBottomSheetRef = useRef<SharedGroupsViewBottomSheetRef>(null);
 
   const isOwnPost = journal?.user_id === currentUserId;
 
@@ -161,13 +170,9 @@ const JournalDetailScreen = () => {
   };
 
   const handleEditJournal = () => {
-    // TODO: 수정 기능 구현
-    Toast.show({
-      type: 'info',
-      text1: '수정 기능',
-      text2: '일기 수정 기능은 곧 추가될 예정입니다.',
-      visibilityTime: 2000,
-    });
+    if (journal?.id) {
+      navigation.navigate('EditJournal', { journalId: journal.id });
+    }
   };
 
   const handleReportJournal = () => {
@@ -233,13 +238,37 @@ const JournalDetailScreen = () => {
       </ScrollView>
 
       <View style={[styles.bottomActionsContainer, { paddingBottom: spacing[3] + insets.bottom }]}>
-        <View style={styles.actionItem}>
-          <Ionicons name="chatbubble-outline" size={20} color={colors['grey-02']} />
-          <Text style={styles.actionText}>댓글(0)</Text>
-        </View>
-        <View style={styles.actionItem}>
-          <Ionicons name="heart-outline" size={20} color={colors['grey-02']} />
-          <Text style={styles.actionText}>좋아요</Text>
+        {/* 공유된 순 정보 */}
+        <TouchableOpacity
+          style={styles.sharedGroupsButton}
+          onPress={() => sharedGroupsBottomSheetRef.current?.present()}
+          activeOpacity={0.7}>
+          {journal.shared_groups && journal.shared_groups.length > 0 ? (
+            <View style={styles.shareIcon}>
+              <Ionicons name="people" size={13.5} color={colors.primary.DEFAULT} />
+            </View>
+          ) : (
+            <View style={styles.shareIcon}>
+              <Ionicons name="lock-closed-outline" size={13.5} color={colors.primary.DEFAULT} />
+            </View>
+          )}
+          <Text style={styles.sharedGroupsButtonText}>
+            {journal.shared_groups && journal.shared_groups.length > 0
+              ? `공유된 순(${journal.shared_groups.length})`
+              : '비공개'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* 우측 액션들 */}
+        <View style={styles.rightActions}>
+          <View style={styles.actionItem}>
+            <Ionicons name="chatbubble-outline" size={20} color={colors['grey-02']} />
+            <Text style={styles.actionText}>댓글(0)</Text>
+          </View>
+          <View style={styles.actionItem}>
+            <Ionicons name="heart-outline" size={20} color={colors['grey-02']} />
+            <Text style={styles.actionText}>좋아요</Text>
+          </View>
         </View>
       </View>
 
@@ -260,6 +289,12 @@ const JournalDetailScreen = () => {
         confirmButtonColor={colors.danger.DEFAULT}
         onConfirm={isDeleting ? () => {} : handleDeleteJournal}
         onClose={() => !isDeleting && setDeleteConfirmVisible(false)}
+      />
+
+      {/* Shared Groups View */}
+      <SharedGroupsViewBottomSheet
+        ref={sharedGroupsBottomSheetRef}
+        sharedGroupIds={journal.shared_groups || []}
       />
     </View>
   );
@@ -305,15 +340,14 @@ const styles = StyleSheet.create({
   },
   bottomActionsContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing[4],
-    paddingBottom: spacing[2],
-    paddingTop: spacing[4],
+    paddingBottom: spacing[3],
+    paddingTop: spacing[3],
     borderTopWidth: 1,
     borderTopColor: colors['light-grey-02'],
     backgroundColor: colors.white,
-    gap: spacing[4],
   },
   actionItem: {
     flexDirection: 'row',
@@ -373,6 +407,30 @@ const styles = StyleSheet.create({
   answerText: {
     ...fontStyles['base-normal'],
     color: colors['dark-grey-01'],
+  },
+  sharedGroupsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    paddingVertical: spacing[1],
+    borderColor: colors['light-grey-02'],
+  },
+  shareIcon: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing[0.5],
+  },
+  sharedGroupsButtonText: {
+    ...fontStyles['sm-normal'],
+    color: colors.primary.DEFAULT,
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[4],
   },
 });
 
