@@ -66,11 +66,17 @@ export const useGroupDetails = (groupId: string | undefined) => {
  */
 export const useCreateGroup = () => {
   const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.session?.user?.id);
 
   return useMutation({
     mutationFn: (newGroup: CreateGroupPayload) => createGroup(newGroup),
     onSuccess: () => {
+      // 기존 그룹 목록들 무효화
       queryClient.invalidateQueries({ queryKey: GROUP_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: GROUP_KEYS.userGroups(userId) });
+
+      // journalQueries의 useUserGroupsForSharing 쿼리도 무효화 (순 공유 리스트 업데이트를 위해)
+      queryClient.invalidateQueries({ queryKey: ['userGroupsForSharing', userId] });
     },
   });
 };
@@ -80,6 +86,7 @@ export const useCreateGroup = () => {
  */
 export const useUpdateGroup = () => {
   const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.session?.user?.id);
 
   return useMutation({
     mutationFn: ({ groupId, groupData }: { groupId: string; groupData: UpdateGroupPayload }) =>
@@ -87,6 +94,9 @@ export const useUpdateGroup = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: GROUP_KEYS.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: GROUP_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: GROUP_KEYS.userGroups(userId) });
+
+      queryClient.invalidateQueries({ queryKey: ['userGroupsForSharing', userId] });
     },
   });
 };
@@ -96,11 +106,16 @@ export const useUpdateGroup = () => {
  */
 export const useDeleteGroup = () => {
   const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.session?.user?.id);
 
   return useMutation({
     mutationFn: (groupId: string) => deleteGroup(groupId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GROUP_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: GROUP_KEYS.userGroups(userId) });
+
+      // journalQueries의 useUserGroupsForSharing 쿼리도 무효화 (순 공유 리스트 업데이트를 위해)
+      queryClient.invalidateQueries({ queryKey: ['userGroupsForSharing', userId] });
     },
   });
 };

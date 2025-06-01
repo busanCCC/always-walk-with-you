@@ -4,7 +4,8 @@ import HomeScreen from '@/screens/HomeScreen';
 import SoonScreen from '@/screens/SoonScreen';
 import MyPageScreen from '@/screens/MyPageScreen';
 import JournalCalendarScreen from '@/screens/JournalCalendarScreen';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import theme from '@/constants/theme';
 import { MainTabParamList } from '../types';
 import HomeIcon from '@/assets/svg/home-icon.svg';
@@ -17,17 +18,9 @@ import { AddGroupButton } from '../components/HeaderButtons';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-// 임시 화면 컴포넌트
-// function TempScreen({ routeName }: { routeName: string }) {
-//   return (
-//     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-//       <Text style={{ fontFamily: theme.fonts.regular }}>{routeName} Screen</Text>
-//     </View>
-//   );
-// }
-// const DiaryScreen = () => <TempScreen routeName="영성일기" />;
-
 export function MainTabNavigator() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -35,11 +28,14 @@ export function MainTabNavigator() {
         tabBarInactiveTintColor: theme.colors['grey-02'],
         tabBarStyle: {
           backgroundColor: theme.colors.white,
-          height: 60,
+          height: Platform.OS === 'ios' ? 48 + insets.bottom : 48,
+          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0,
+          paddingTop: Platform.OS === 'ios' ? 8 : 0,
         },
         tabBarLabelStyle: {
           fontSize: theme.fontStyles['xs-normal'].fontSize,
           fontFamily: theme.fontStyles['xs-normal'].fontFamily,
+          marginBottom: Platform.OS === 'ios' ? 0 : 5,
         },
         tabBarIcon: ({ focused, color, size }) => {
           let IconComponent;

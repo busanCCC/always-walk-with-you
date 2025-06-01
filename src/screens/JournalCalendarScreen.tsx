@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useQueries, keepPreviousData, UseQueryResult } from '@tanstack/react-query';
 import { colors, spacing, fontStyles, fonts } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { journalQueryKeys } from '@/queries/journalQueries';
 import { fetchJournalsByDateRange } from '@/apis/journalApi';
 import { Journal, Emotion } from '@/types/journal';
@@ -392,7 +393,7 @@ const JournalCalendarScreen = () => {
       </ScrollView>
       {/* FAB */}
       <TouchableOpacity style={styles.fabContainer} onPress={handleFabPress}>
-        <Ionicons name="create-outline" size={32} color={colors.primary.DEFAULT} />
+        <MaterialIcons name="create" size={24} color={colors.primary.DEFAULT} />
       </TouchableOpacity>
       <AlertModal
         visible={alertModal.visible}

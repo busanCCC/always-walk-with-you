@@ -13,7 +13,7 @@ import KakaoIcon from '@/assets/svg/kakao-icon.svg';
 import GoogleIcon from '@/assets/svg/google-icon.svg';
 import theme from '@/constants/theme';
 import logo from '@/assets/images/logo.png';
-import { useSignInWithKakaoMutation, useSignInWithGoogleMutation } from '@/queries/authQueries';
+import { useSignInWithKakaoMutation } from '@/queries/authQueries';
 
 export default function LoginScreen() {
   const {
@@ -23,19 +23,19 @@ export default function LoginScreen() {
     error: kakaoError,
   } = useSignInWithKakaoMutation();
 
-  const {
-    mutate: signInWithGoogle,
-    isError: isGoogleError,
-    isPending: isGooglePending,
-    error: googleError,
-  } = useSignInWithGoogleMutation();
+  // const {
+  //   mutate: signInWithGoogle,
+  //   isError: isGoogleError,
+  //   isPending: isGooglePending,
+  //   error: googleError,
+  // } = useSignInWithGoogleMutation();
 
   const handleKakaoLogin = async () => {
     signInWithKakao();
   };
 
   const handleGoogleLogin = async () => {
-    signInWithGoogle();
+    // signInWithGoogle();
   };
 
   const openLink = (url: string) => {
@@ -61,7 +61,7 @@ export default function LoginScreen() {
             </StyledText>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.googleButton}
             onPress={handleGoogleLogin}
             disabled={isGooglePending}>
@@ -69,11 +69,11 @@ export default function LoginScreen() {
             <StyledText variant="base-normal" colorKey="dark-grey-02">
               {isGooglePending ? '로그인 중...' : '구글로 시작하기'}
             </StyledText>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
-          {(isKakaoError || isGoogleError) && (
+          {isKakaoError && (
             <StyledText colorKey="red-500" variant="sm-normal">
-              로그인 중 오류가 발생했습니다: {kakaoError?.message || googleError?.message}
+              {/* 로그인 중 오류가 발생했습니다: {kakaoError?.message || googleError?.message} */}
             </StyledText>
           )}
           <StyledText variant="xs-normal" colorKey="grey-02" style={styles.termsInfoText}>

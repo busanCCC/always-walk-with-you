@@ -17,6 +17,7 @@ import {
   useEmotionsQuery,
   useQuestionsQuery,
   useCreateJournalMutation,
+  useJournalExistsForDate,
 } from '@/queries/journalQueries';
 import { useAuthStore } from '@/store/authStore';
 import { RootStackParamList } from '@/navigation/types';
@@ -71,6 +72,27 @@ const CreateJournalScreen: React.FC = () => {
   const journalDate = selectedDate
     ? new Date(selectedDate + 'T00:00:00') // 현지 시간 기준으로 자정 설정
     : new Date(getTodayString() + 'T00:00:00'); // 오늘 날짜도 현지 시간 기준으로
+
+  // 날짜 문자열 (YYYY-MM-DD 형식)
+  const dateString = selectedDate || getTodayString();
+
+  // 해당 날짜에 이미 일기가 존재하는지 확인
+  const { data: journalExists, isLoading: isCheckingExists } = useJournalExistsForDate(dateString);
+
+  // 이미 일기가 존재하는 경우 알림 표시 후 뒤로 가기
+  React.useEffect(() => {
+    if (!isCheckingExists && journalExists) {
+      const dateObj = new Date(dateString);
+      const month = dateObj.getMonth() + 1;
+      const day = dateObj.getDate();
+      const formattedDate = selectedDate ? `${month}월 ${day}일` : '오늘';
+
+      showAlert(
+        '일기 작성 제한',
+        `${formattedDate}은 이미 일기를 작성하셨습니다.\n하루에 하나의 일기만 작성할 수 있어요.`
+      );
+    }
+  }, [isCheckingExists, journalExists, dateString, selectedDate, navigation]);
 
   // 답변이 있는지 확인하는 함수 (prompt_based mode용)
   const hasAnyAnswer = () => {
@@ -179,7 +201,7 @@ const CreateJournalScreen: React.FC = () => {
 
     try {
       // 선택된 날짜가 있으면 그 날짜로, 없으면 오늘 날짜로 (현지 시간 기준)
-      const dateString = selectedDate || getTodayString();
+      // const dateString = selectedDate || getTodayString(); // 이미 위에서 선언됨
 
       if (mode === 'free_writing') {
         await createJournalMutation.mutateAsync({
@@ -219,12 +241,29 @@ const CreateJournalScreen: React.FC = () => {
       navigation.goBack();
     } catch (error) {
       console.error('Save journal error:', error);
-      Toast.show({
-        type: 'error',
-        text1: '저장 실패',
-        text2: '일기 저장 중 오류가 발생했습니다.',
-        visibilityTime: 3000,
-      });
+
+      // 중복 생성 에러인지 확인
+      const isUniqueConstraintError =
+        error instanceof Error && error.message.includes('unique_user_date_journal');
+
+      if (isUniqueConstraintError) {
+        const dateObj = new Date(dateString);
+        const month = dateObj.getMonth() + 1;
+        const day = dateObj.getDate();
+        const formattedDate = selectedDate ? `${month}월 ${day}일` : '오늘';
+
+        showAlert(
+          '일기 작성 제한',
+          `${formattedDate}은 이미 일기를 작성하셨습니다.\n하루에 하나의 일기만 작성할 수 있어요.`
+        );
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: '저장 실패',
+          text2: '일기 저장 중 오류가 발생했습니다.',
+          visibilityTime: 3000,
+        });
+      }
     }
   };
 

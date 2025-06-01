@@ -3,11 +3,21 @@ import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri, AuthSessionRedirectUriOptions } from 'expo-auth-session';
 import { Session, User } from '@supabase/supabase-js';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { Platform } from 'react-native';
 
+// iOS 시뮬레이터에서 안정적인 OAuth를 위한 리다이렉트 URI 설정
 const redirectUriOptions: AuthSessionRedirectUriOptions & { useProxy?: boolean } = {
-  useProxy: true,
+  // iOS 시뮬레이터에서는 useProxy를 false로 설정하여 네트워크 연결 문제 해결
+  useProxy: Platform.OS === 'ios' ? false : true,
+  // 커스텀 스킴 사용
+  scheme: 'alwayswalkwithyouauth',
 };
 const redirectUri = makeRedirectUri(redirectUriOptions);
+
+console.log('OAuth Redirect URI:', redirectUri);
+
+// iOS에서 WebBrowser 최적화 설정
+WebBrowser.maybeCompleteAuthSession();
 
 export interface LoginResult {
   session: Session | null;
@@ -20,10 +30,17 @@ export interface GoogleLoginResult extends LoginResult {}
 
 export const signInWithKakao = async (): Promise<KakaoLoginResult> => {
   try {
+    console.log('Starting Kakao login with redirect URI:', redirectUri);
+
     const { data: oauthData, error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
         redirectTo: redirectUri,
+        // iOS에서 더 안정적인 OAuth를 위한 옵션 추가
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     });
 
@@ -37,10 +54,27 @@ export const signInWithKakao = async (): Promise<KakaoLoginResult> => {
       return { session: null, user: null, error: 'OAuth URL not found' };
     }
 
-    const result = await WebBrowser.openAuthSessionAsync(oauthData.url, redirectUri);
+    console.log('Opening auth session for Kakao:', oauthData.url);
+
+    // iOS에서 더 안정적인 WebBrowser 설정
+    const result = await WebBrowser.openAuthSessionAsync(oauthData.url, redirectUri, {
+      // iOS에서 시스템 브라우저 사용 대신 in-app 브라우저 사용
+      preferEphemeralSession: false,
+      // iOS 시뮬레이터에서 더 나은 호환성을 위해
+      showInRecents: false,
+    });
+
+    console.log('Kakao auth session result:', result);
 
     if (result.type === 'success' && result.url) {
-      const params = new URLSearchParams(result.url.split('#')[1]);
+      // URL 파싱 개선
+      const urlParts = result.url.split('#');
+      if (urlParts.length < 2) {
+        console.warn('Invalid OAuth callback URL format:', result.url);
+        return { session: null, user: null, error: 'Invalid OAuth callback URL format' };
+      }
+
+      const params = new URLSearchParams(urlParts[1]);
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
 
@@ -66,7 +100,11 @@ export const signInWithKakao = async (): Promise<KakaoLoginResult> => {
       }
       console.warn('Access token or refresh token not found in URL.');
       return { session: null, user: null, error: 'Tokens not found in URL.' };
+    } else if (result.type === 'cancel') {
+      console.log('Kakao login was cancelled by user');
+      return { session: null, user: null, error: 'Login cancelled by user' };
     }
+
     console.warn('Kakao login was cancelled or failed:', result);
     return { session: null, user: null, error: 'Login cancelled or failed.' };
   } catch (err: any) {
@@ -80,6 +118,7 @@ export const initializeGoogleSignIn = async () => {
   try {
     await GoogleSignin.configure({
       webClientId: '773201720169-mklk0et95leh8p423b4mcjbrmt9gem3g.apps.googleusercontent.com', // Google Cloud Console에서 생성한 웹 클라이언트 ID
+      iosClientId: '773201720169-f2vce137l1b6mu6cugi0isfa45184db4.apps.googleusercontent.com',
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
@@ -90,15 +129,21 @@ export const initializeGoogleSignIn = async () => {
 
 export const signInWithGoogle = async (): Promise<GoogleLoginResult> => {
   try {
+    console.log('Starting Google login...');
+
     // Google 로그인 체크
     await GoogleSignin.hasPlayServices();
 
     // Google 로그인 실행
     const userInfo = await GoogleSignin.signIn();
+    console.log('Google sign-in successful, userInfo:', userInfo);
 
     if (!userInfo.data?.idToken) {
+      console.error('Google ID token not found in userInfo');
       return { session: null, user: null, error: 'Google ID token not found' };
     }
+
+    console.log('Authenticating with Supabase using Google ID token...');
 
     // Supabase에 Google ID 토큰으로 로그인
     const { data: sessionData, error: sessionError } = await supabase.auth.signInWithIdToken({
@@ -112,9 +157,11 @@ export const signInWithGoogle = async (): Promise<GoogleLoginResult> => {
     }
 
     if (sessionData.session && sessionData.user) {
+      console.log('Google login successful!');
       return { session: sessionData.session, user: sessionData.user };
     }
 
+    console.error('Session or user data missing after Google login');
     return { session: null, user: null, error: 'Session or user data missing' };
   } catch (err: any) {
     console.error('Google login error:', err);

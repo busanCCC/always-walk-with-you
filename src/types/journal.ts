@@ -31,6 +31,13 @@ export interface Journal {
   updated_at: string; // timestamp with time zone
   emotion?: Emotion | null; // API join 또는 별도 조회 후 채워질 수 있음
   journal_entries?: JournalEntry[] | null; // 새로 추가
+  user?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    profile_img?: string | null;
+    is_admin?: boolean; // 그룹 관리자 여부
+  } | null; // 작성자 정보 (그룹 일기 조회 시 포함)
 }
 
 export interface Emotion {

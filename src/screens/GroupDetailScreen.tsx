@@ -10,8 +10,10 @@ import {
   ScrollView,
   Dimensions,
   Animated,
+  FlatList,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/navigation/types/index';
 import { colors, spacing, fontStyles } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -21,16 +23,21 @@ import {
   useDeleteGroup,
   useGroupMembers,
 } from '@/queries/groupQueries';
+import { useGroupJournals } from '@/queries/journalQueries';
 import { UpdateGroupPayload } from '@/types/group';
+import { Journal } from '@/types/journal';
 import GroupModal from '@/components/common/GroupModal';
 import AlertModal from '@/components/common/AlertModal';
+import GroupJournalCard from '@/components/journal/GroupJournalCard';
+import { getMemberDisplayName } from '@/utils/roleMapper';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 type GroupDetailScreenRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 const { width } = Dimensions.get('window');
 const DRAWER_WIDTH = width * 0.8; // 화면 너비의 80%
 
 const GroupDetailScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<GroupDetailScreenRouteProp>();
   const { groupId, groupName } = route.params;
 
@@ -60,6 +67,13 @@ const GroupDetailScreen = () => {
   } = useGroupDetails(groupId);
 
   const {
+    data: groupJournals,
+    isLoading: journalsLoading,
+    isError: journalsError,
+    refetch: refetchJournals,
+  } = useGroupJournals(groupId);
+
+  const {
     data: members,
     isLoading: membersLoading,
     isError: membersError,
@@ -71,11 +85,28 @@ const GroupDetailScreen = () => {
 
   const isAdmin = groupDetails?.is_admin || false;
 
+  // 일기 카드 클릭 핸들러
+  const handleJournalPress = (journal: Journal) => {
+    navigation.navigate('JournalDetail', { journalId: journal.id });
+  };
+
+  // 일기 작성 버튼 핸들러
+  const handleCreateJournal = () => {
+    navigation.navigate('SelectJournalMode', {});
+  };
+
   // 페이지 진입 시 헤더 설정 - 즉시 전달받은 이름으로 설정하되, API 로드 후 업데이트
   useEffect(() => {
     navigation.setOptions({
       headerTitle: groupDetails?.name || groupName, // API 데이터 우선, 없으면 파라미터 사용
       headerTitleAlign: 'center', // 중앙 정렬
+      headerShadowVisible: false,
+
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButtonContainer}>
+          <Ionicons name="chevron-back" size={20} color={colors['dark-grey-02']} />
+        </TouchableOpacity>
+      ),
       headerRight: () => (
         <TouchableOpacity
           onPress={drawerVisible ? closeDrawer : openDrawer}
@@ -201,7 +232,38 @@ const GroupDetailScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.placeholderText}>여기에 해당 순의 글 목록이 표시됩니다.</Text>
+      {journalsLoading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+        </View>
+      ) : journalsError ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>일기를 불러오는 데 실패했습니다.</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => refetchJournals()}>
+            <Text style={styles.retryButtonText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={groupJournals}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item: journal }) => (
+            <GroupJournalCard journal={journal} onPress={() => handleJournalPress(journal)} />
+          )}
+          ListEmptyComponent={() => (
+            <View style={styles.centerContainer}>
+              <Text style={styles.placeholderText}>해당 순에 공유된 일기가 없습니다.</Text>
+            </View>
+          )}
+          contentContainerStyle={groupJournals?.length === 0 ? styles.centerContainer : undefined}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {/* 플로팅 액션 버튼 */}
+      <TouchableOpacity style={styles.floatingButton} onPress={handleCreateJournal}>
+        <MaterialIcons name="create" size={24} color={colors.primary.DEFAULT} />
+      </TouchableOpacity>
 
       {/* Drawer 오버레이 */}
       <Modal
@@ -252,7 +314,7 @@ const GroupDetailScreen = () => {
                         members.map((member) => (
                           <View key={member.id} style={styles.memberItem}>
                             <View style={styles.memberAvatar}>
-                              {member.users.avatar_url ? (
+                              {member.users.profile_img ? (
                                 <Text>A</Text> // TODO: 실제 아바타 이미지 사용
                               ) : (
                                 <Text style={styles.memberInitial}>
@@ -263,12 +325,7 @@ const GroupDetailScreen = () => {
                               )}
                             </View>
                             <View style={styles.memberInfo}>
-                              <Text style={styles.memberName}>
-                                {member.users.name || member.users.email || '이름 없음'}
-                                {member.is_admin && (
-                                  <Text style={styles.adminBadge}> (관리자)</Text>
-                                )}
-                              </Text>
+                              <Text style={styles.memberName}>{getMemberDisplayName(member)}</Text>
                             </View>
                           </View>
                         ))}
@@ -663,6 +720,22 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     ...fontStyles['base-tight'],
     color: colors.white,
+  },
+
+  // 플로팅 액션 버튼 스타일
+  floatingButton: {
+    position: 'absolute',
+    bottom: spacing[4],
+    right: spacing[4],
+    backgroundColor: colors.primary.light,
+    borderRadius: 24,
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerButtonContainer: {
+    paddingHorizontal: spacing[2],
   },
 });
 

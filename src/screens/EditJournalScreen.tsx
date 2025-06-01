@@ -2,7 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from
 import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -10,7 +10,7 @@ import { RootStackParamList } from '@/navigation/types';
 import { fetchJournalById, updateJournal, fetchEmotions } from '@/apis/journalApi';
 import { useAuthStore } from '@/store/authStore';
 import { Journal, Emotion } from '@/types/journal';
-import { useQuestionsQuery } from '@/queries/journalQueries';
+import { useQuestionsQuery, useUpdateJournalMutation } from '@/queries/journalQueries';
 import { colors, spacing, fontStyles } from '@/constants/theme';
 import CustomHeader from '@/components/common/CustomHeader';
 import JournalEditorForm from '@/components/journal/JournalEditorForm';
@@ -62,41 +62,34 @@ const EditJournalScreen = () => {
   const { data: questions = [] } = useQuestionsQuery();
 
   // 일기 수정 mutation
-  const updateMutation = useMutation({
-    mutationFn: (updateData: {
-      emotion_id?: string;
-      content?: string;
-      answers?: Array<{ answer: string; order: number }>;
-      shared_groups?: string[];
-    }) => {
-      if (!user?.id) throw new Error('User not authenticated');
-      return updateJournal(journalId, user.id, updateData);
-    },
-    onSuccess: (updatedJournal) => {
+  const updateMutation = useUpdateJournalMutation();
+
+  // 뮤테이션 성공 처리
+  React.useEffect(() => {
+    if (updateMutation.isSuccess) {
       Toast.show({
         type: 'success',
         text1: '수정 완료',
         text2: '일기가 성공적으로 수정되었습니다.',
         visibilityTime: 2000,
       });
-
-      // 캐시 업데이트
-      queryClient.setQueryData(['journal', journalId], updatedJournal);
-      queryClient.invalidateQueries({ queryKey: ['journals'] });
-
       setIsForceExit(true);
       navigation.goBack();
-    },
-    onError: (error) => {
-      console.error('일기 수정 실패:', error);
+    }
+  }, [updateMutation.isSuccess, navigation]);
+
+  // 뮤테이션 에러 처리
+  React.useEffect(() => {
+    if (updateMutation.isError) {
+      console.error('일기 수정 실패:', updateMutation.error);
       Toast.show({
         type: 'error',
         text1: '수정 실패',
         text2: '일기 수정 중 오류가 발생했습니다.',
         visibilityTime: 3000,
       });
-    },
-  });
+    }
+  }, [updateMutation.isError, updateMutation.error]);
 
   // 뒤로가기 방지
   useFocusEffect(
@@ -252,7 +245,12 @@ const EditJournalScreen = () => {
       updateData.answers = promptAnswers;
     }
 
-    updateMutation.mutate(updateData);
+    updateMutation.mutate({
+      journalId,
+      userId: user!.id,
+      updateData,
+      originalSharedGroups: journal?.shared_groups || [],
+    });
   };
 
   const handleSelectEmotion = (emotion: Emotion) => {

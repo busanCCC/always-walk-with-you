@@ -11,6 +11,9 @@ import {
   fetchEmotions,
   createJournal,
   deleteJournal,
+  updateJournal,
+  fetchGroupJournals,
+  checkJournalExistsForDate,
 } from '../apis/journalApi';
 import questionsData from '../assets/data/questions.json';
 import { Question } from '../types/journal';
@@ -46,8 +49,6 @@ export const useWeeklyJournalsQuery = () => {
     queryKey: journalQueryKeys.list(startDate, endDate, userId),
     queryFn: async () => {
       if (!userId) {
-        // enabled 옵션으로 userId가 없을 때 쿼리 실행을 막을 수도 있지만,
-        // queryFn 내부에서 명시적으로 빈 배열을 반환하거나 에러를 던질 수도 있습니다.
         return [];
       }
       return fetchJournalsByDateRange(startDate, endDate, userId);
@@ -154,8 +155,15 @@ export const useCreateJournalMutation = () => {
   return useMutation({
     mutationFn: createJournal,
     onSuccess: (data) => {
-      // 관련된 쿼리들을 무효화하여 새로고침
+      // 관련 쿼리들 무효화
       queryClient.invalidateQueries({ queryKey: journalQueryKeys.all });
+
+      // 만약 그룹에 공유되었다면 해당 그룹의 일기 목록도 무효화
+      if (data.shared_groups && data.shared_groups.length > 0) {
+        data.shared_groups.forEach((groupId) => {
+          queryClient.invalidateQueries({ queryKey: ['groupJournals', groupId] });
+        });
+      }
     },
   });
 };
@@ -178,6 +186,83 @@ export const useDeleteJournalMutation = () => {
           return !query.queryKey.includes('detail');
         },
       });
+
+      // 모든 그룹 일기 캐시 무효화 (어떤 그룹에 공유되었는지 모르므로)
+      queryClient.invalidateQueries({ queryKey: ['groupJournals'] });
     },
+  });
+};
+
+/**
+ * 저널을 수정하는 mutation 훅
+ */
+export const useUpdateJournalMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      journalId,
+      userId,
+      updateData,
+      originalSharedGroups,
+    }: {
+      journalId: string;
+      userId: string;
+      updateData: {
+        emotion_id?: string;
+        content?: string;
+        answers?: Array<{ answer: string; order: number }>;
+        shared_groups?: string[];
+      };
+      originalSharedGroups?: string[];
+    }) => updateJournal(journalId, userId, updateData),
+    onSuccess: (updatedJournal, { updateData, originalSharedGroups }) => {
+      // 관련 쿼리들 무효화
+      queryClient.setQueryData(journalQueryKeys.detail(updatedJournal.id), updatedJournal);
+      queryClient.invalidateQueries({ queryKey: journalQueryKeys.all });
+
+      // 그룹 공유가 변경된 경우 그룹 일기 캐시 무효화
+      if (updateData.shared_groups !== undefined) {
+        // 기존 공유 그룹들의 캐시 무효화
+        if (originalSharedGroups && originalSharedGroups.length > 0) {
+          originalSharedGroups.forEach((groupId) => {
+            queryClient.invalidateQueries({ queryKey: ['groupJournals', groupId] });
+          });
+        }
+
+        // 새로 공유된 그룹들의 캐시 무효화
+        if (updateData.shared_groups.length > 0) {
+          updateData.shared_groups.forEach((groupId) => {
+            queryClient.invalidateQueries({ queryKey: ['groupJournals', groupId] });
+          });
+        }
+      }
+    },
+  });
+};
+
+/**
+ * 그룹에 공유된 일기들을 가져오는 쿼리 훅
+ */
+export const useGroupJournals = (groupId: string | undefined) => {
+  return useQuery({
+    queryKey: ['groupJournals', groupId],
+    queryFn: () => fetchGroupJournals(groupId!),
+    enabled: !!groupId,
+    staleTime: 1000 * 60 * 5, // 5분 캐시
+  });
+};
+
+/**
+ * 특정 날짜에 사용자의 일기가 이미 존재하는지 확인하는 쿼리 훅
+ */
+export const useJournalExistsForDate = (date: string) => {
+  const userId = useAuthStore((state) => state.session?.user?.id);
+
+  return useQuery({
+    queryKey: ['journalExists', userId, date],
+    queryFn: () => checkJournalExistsForDate(userId!, date),
+    enabled: !!userId && !!date,
+    staleTime: 1000 * 60 * 5, // 5분 캐시
   });
 };

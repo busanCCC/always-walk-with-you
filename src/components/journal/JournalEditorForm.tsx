@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Keyboard,
+  Animated,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -91,12 +94,55 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
   const emotionBottomSheetRef = useRef<EmotionBottomSheetRef>(null);
   const groupShareBottomSheetRef = useRef<GroupShareBottomSheetRef>(null);
 
+  // 키보드 높이 추적
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const keyboardHeightAnimated = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => {
+        const { height } = event.endCoordinates;
+        setKeyboardHeight(height);
+        Animated.timing(keyboardHeightAnimated, {
+          toValue: height,
+          duration: Platform.OS === 'ios' ? 250 : 200,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+        Animated.timing(keyboardHeightAnimated, {
+          toValue: 0,
+          duration: Platform.OS === 'ios' ? 250 : 200,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, [keyboardHeightAnimated]);
+
   const handleEmotionPress = () => {
+    Keyboard.dismiss(); // bottom sheet 열기 전에 키보드 내리기
     emotionBottomSheetRef.current?.present();
   };
 
   const handleShareToGroup = () => {
+    Keyboard.dismiss(); // bottom sheet 열기 전에 키보드 내리기
     groupShareBottomSheetRef.current?.present();
+  };
+
+  const handleSave = () => {
+    Keyboard.dismiss(); // 저장 시 키보드 내리기
+    onSave();
   };
 
   const renderFreeWriteContent = () => (
@@ -110,96 +156,123 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
         multiline
         textAlignVertical="top"
         editable={!disabled}
+        returnKeyType="done"
+        blurOnSubmit={true}
       />
     </View>
   );
 
   const renderPromptBasedContent = () => (
-    <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-      <View style={styles.contentContainer}>
-        {promptAnswers.map((answer, index) => {
-          const question =
-            questions.find((q) => q.order_index === answer.order) || questions[index];
-          return (
-            <View key={answer.order || index} style={styles.questionContainer}>
-              <Text style={styles.questionText}>
-                {question?.content || answer.question_text || `질문 ${index + 1}`}
-              </Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder={answer.placeholder || '답변을 입력해주세요...'}
-                  placeholderTextColor={colors['light-grey-02']}
-                  value={answer.answer}
-                  onChangeText={(text) => onPromptAnswerChange?.(answer.order, text)}
-                  multiline
-                  textAlignVertical="top"
-                  editable={!disabled}
-                />
-              </View>
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={styles.scrollContentContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled">
+      {promptAnswers.map((answer, index) => {
+        const question = questions.find((q) => q.order_index === answer.order) || questions[index];
+        return (
+          <View key={answer.order || index} style={styles.questionContainer}>
+            <Text style={styles.questionText}>
+              {question?.content || answer.question_text || `질문 ${index + 1}`}
+            </Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder={answer.placeholder || '답변을 입력해주세요...'}
+                placeholderTextColor={colors['light-grey-02']}
+                value={answer.answer}
+                onChangeText={(text) => onPromptAnswerChange?.(answer.order, text)}
+                multiline
+                textAlignVertical="top"
+                editable={!disabled}
+                returnKeyType="done"
+                blurOnSubmit={true}
+              />
             </View>
-          );
-        })}
-      </View>
+          </View>
+        );
+      })}
     </ScrollView>
   );
 
   return (
     <View style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        {/* Journal Header - 날짜, 요일, 감정 아이콘 */}
-        <View style={styles.headerContainer}>
-          <JournalHeader
-            date={date}
-            emotion={selectedEmotion || defaultEmotion}
-            onEmotionPress={handleEmotionPress}
-            defaultEmotion={defaultEmotion}
-          />
-        </View>
-
-        {/* 구분선 */}
-        <View style={styles.divider} />
-
-        {/* 내용 입력 영역 */}
-        {mode === 'free_writing' ? renderFreeWriteContent() : renderPromptBasedContent()}
-
-        {/* Footer - 하단 고정 버튼들 */}
-        <View style={[styles.footer, { paddingBottom: spacing[2] + spacing[1] + insets.bottom }]}>
-          <View style={styles.footerContent}>
-            {/* 왼쪽 영역 */}
-            <View style={styles.leftFooter}>
-              {showGroupShare ? (
-                <TouchableOpacity
-                  style={styles.shareButton}
-                  onPress={handleShareToGroup}
-                  disabled={disabled}>
-                  <View style={styles.shareIcon}>
-                    <Ionicons name="share-outline" size={16} color={colors.primary.DEFAULT} />
-                  </View>
-                  <Text style={[styles.shareButtonText, disabled && styles.disabledText]}>
-                    순에 공유하기({selectedGroupIds.length})
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                leftFooterContent
-              )}
-            </View>
-
-            {/* 저장하기 버튼 */}
-            <TouchableOpacity
-              style={[styles.saveButton, (disabled || isSaving) && styles.saveButtonDisabled]}
-              onPress={onSave}
-              disabled={disabled || isSaving}>
-              <Text style={styles.saveButtonText}>
-                {isSaving ? '저장 중...' : saveButtonText || '저장하기'}
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color={colors['dark-grey-02']} />
-            </TouchableOpacity>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+          {/* Journal Header - 날짜, 요일, 감정 아이콘 */}
+          <View style={styles.headerContainer}>
+            <JournalHeader
+              date={date}
+              emotion={selectedEmotion || defaultEmotion}
+              onEmotionPress={handleEmotionPress}
+              defaultEmotion={defaultEmotion}
+            />
           </View>
+
+          {/* 구분선 */}
+          <View style={styles.divider} />
+
+          {/* 내용 입력 영역 */}
+          <View style={styles.contentWrapper}>
+            {mode === 'free_writing' ? renderFreeWriteContent() : renderPromptBasedContent()}
+          </View>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+
+      {/* Footer - 키보드 위에 고정되는 버튼들 */}
+      <Animated.View
+        style={[
+          styles.footer,
+          {
+            paddingBottom:
+              keyboardHeight > 0
+                ? spacing[2] // 키보드가 올라왔을 때는 최소 패딩만
+                : spacing[2] + (Platform.OS === 'ios' ? insets.bottom : 0), // 키보드가 없을 때만 safe area 적용
+            transform: [
+              {
+                translateY: keyboardHeightAnimated.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -1],
+                }),
+              },
+            ],
+          },
+        ]}>
+        <View style={styles.footerContent}>
+          {/* 왼쪽 영역 */}
+          <View style={styles.leftFooter}>
+            {showGroupShare ? (
+              <TouchableOpacity
+                style={styles.shareButton}
+                onPress={handleShareToGroup}
+                disabled={disabled}>
+                <View style={styles.shareIcon}>
+                  <Ionicons name="share-outline" size={16} color={colors.primary.DEFAULT} />
+                </View>
+                <Text style={[styles.shareButtonText, disabled && styles.disabledText]}>
+                  순에 공유하기({selectedGroupIds.length})
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              leftFooterContent
+            )}
+          </View>
+
+          {/* 저장하기 버튼 */}
+          <TouchableOpacity
+            style={[styles.saveButton, (disabled || isSaving) && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={disabled || isSaving}>
+            <Text style={styles.saveButtonText}>
+              {isSaving ? '저장 중...' : saveButtonText || '저장하기'}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors['dark-grey-02']} />
+          </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </Animated.View>
 
       {/* 감정 선택 BottomSheet */}
       <EmotionBottomSheet
@@ -235,10 +308,14 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors['light-grey-02'],
   },
+  contentWrapper: {
+    flex: 1,
+  },
   // 자유 작성 모드 스타일
   contentContainer: {
     flex: 1,
     padding: spacing[4],
+    paddingBottom: 80, // footer 높이 + 여백
   },
   freeWriteInput: {
     flex: 1,
@@ -251,6 +328,10 @@ const styles = StyleSheet.create({
   // 질문 기반 모드 스타일
   scrollContainer: {
     flex: 1,
+  },
+  scrollContentContainer: {
+    padding: spacing[4],
+    paddingBottom: 80, // footer 높이 + 여백
   },
   questionContainer: {
     marginBottom: spacing[6],
@@ -275,8 +356,12 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
-  // Footer 스타일
+  // Footer 스타일 - 절대 위치로 키보드 위에 고정
   footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors['light-grey-02'],

@@ -25,7 +25,12 @@
         }
       ],
       "expo-web-browser",
-      "@react-native-google-signin/google-signin"
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.773201720169-f2vce137l1b6mu6cugi0isfa45184db4"
+        }
+      ]
     ],
     "splash": {
       "backgroundColor": "#2584F0",
@@ -38,14 +43,25 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.busancc.alwayswalkwithyou"
+      "bundleIdentifier": "com.busancc.alwayswalkwithyou",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/images/logo.png",
         "backgroundColor": "#2584F0"
       },
-      "package": "com.busancc.alwayswalkwithyou"
+      "package": "com.busancc.alwayswalkwithyou",
+      "statusBar": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1e55cb2e-d86f-43b1-972c-a68d69aee6e1"
+      }
     }
   }
 }

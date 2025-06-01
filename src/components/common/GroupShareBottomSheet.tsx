@@ -209,11 +209,11 @@ const styles = StyleSheet.create({
     width: 17,
     height: 17,
     borderRadius: 8.5,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: colors.white,
   },
   selectedCheckCircle: {
     backgroundColor: colors.primary.DEFAULT,

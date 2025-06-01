@@ -71,7 +71,7 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
 
   const safeAreaTopPadding = Platform.select({
     ios: insets.top,
-    android: StatusBar.currentHeight || 0, // StatusBar.currentHeight가 undefined일 경우 0으로 처리
+    // android: StatusBar.currentHeight || 0, // StatusBar.currentHeight가 undefined일 경우 0으로 처리
     default: 0,
   });
 

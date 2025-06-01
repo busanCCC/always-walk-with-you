@@ -6,7 +6,6 @@ import {
 } from '@react-navigation/native-stack';
 import { useAuthStore } from '@/store/authStore';
 import ProfileSetupScreen from '@/screens/ProfileSetupScreen';
-import { Text, View, TouchableOpacity } from 'react-native';
 import theme from '@/constants/theme';
 import WebViewScreen from '@/screens/WebViewScreen';
 import { RootStackParamList } from './types';
@@ -52,28 +51,6 @@ const webViewScreenOptions = ({ route }: any): NativeStackNavigationOptions => (
     fontFamily: theme.fonts.semiBold,
   },
 });
-
-function TempScreen({ routeName }: { routeName: string }) {
-  const signOut = useAuthStore((state) => state.signOut);
-
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontFamily: theme.fonts.regular }}>{routeName} Screen</Text>
-      {routeName === '마이페이지' && (
-        <TouchableOpacity
-          onPress={signOut}
-          style={{
-            marginTop: 20,
-            padding: 10,
-            backgroundColor: theme.colors.primary.DEFAULT,
-            borderRadius: 5,
-          }}>
-          <Text style={{ color: theme.colors.white }}>로그아웃</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
 
 export default function AppNavigator() {
   const { session, loading, isInitialized, profileCompleted, signOut } = useAuthStore();

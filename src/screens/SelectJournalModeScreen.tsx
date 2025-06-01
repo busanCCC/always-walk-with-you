@@ -7,6 +7,9 @@ import { colors, spacing, fontStyles, fonts } from '@/constants/theme';
 import { JournalMode } from '@/types/journal';
 import { RootStackParamList } from '@/navigation/types';
 import CustomHeader from '@/components/common/CustomHeader';
+import AlertModal from '@/components/common/AlertModal';
+import { useJournalExistsForDate } from '@/queries/journalQueries';
+import { getTodayString } from '@/utils/journalUtils';
 
 interface ModeOption {
   mode: JournalMode;
@@ -44,6 +47,39 @@ const SelectJournalModeScreen: React.FC = () => {
   const navigation = useNavigation<SelectJournalModeNavigationProp>();
   const route = useRoute<SelectJournalModeRouteProp>();
   const selectedDate = route.params?.selectedDate;
+
+  const [alertModal, setAlertModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+  }>({ visible: false, title: '', message: '' });
+
+  // 날짜 문자열 (YYYY-MM-DD 형식)
+  const dateString = selectedDate || getTodayString();
+
+  // 해당 날짜에 이미 일기가 존재하는지 확인
+  const { data: journalExists, isLoading: isCheckingExists } = useJournalExistsForDate(dateString);
+
+  // 이미 일기가 존재하는 경우 알림 표시 후 뒤로 가기
+  React.useEffect(() => {
+    if (!isCheckingExists && journalExists) {
+      const dateObj = new Date(dateString);
+      const month = dateObj.getMonth() + 1;
+      const day = dateObj.getDate();
+      const formattedDate = selectedDate ? `${month}월 ${day}일` : '오늘';
+
+      setAlertModal({
+        visible: true,
+        title: '일기 작성 제한',
+        message: `${formattedDate}에는 이미 일기를 작성하셨습니다.\n하루에 하나의 일기만 작성할 수 있어요.`,
+      });
+    }
+  }, [isCheckingExists, journalExists, dateString, selectedDate, navigation]);
+
+  const hideAlert = () => {
+    setAlertModal({ visible: false, title: '', message: '' });
+    navigation.goBack();
+  };
 
   // 제목 텍스트 생성
   const getHeaderTitle = () => {
@@ -103,6 +139,14 @@ const SelectJournalModeScreen: React.FC = () => {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertModal.visible}
+        onClose={hideAlert}
+        title={alertModal.title}
+        message={alertModal.message}
+      />
     </ScrollView>
   );
 };

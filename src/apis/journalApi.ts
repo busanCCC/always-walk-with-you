@@ -51,7 +51,7 @@ export const fetchJournalsByDateRange = async (
       rawData?.map(
         (j: RawJournalData): Journal => ({
           ...j,
-          emotion: Array.isArray(j.emotions) ? j.emotions[0] : j.emotions,
+          emotion: Array.isArray(j.emotions) ? j.emotions[0] || null : j.emotions || null,
           journal_entries: j.journal_entries || [],
         })
       ) || [];
@@ -107,7 +107,9 @@ export const fetchJournalById = async (journalId: string): Promise<Journal> => {
 
     const journalWithDetails: Journal = {
       ...rawData,
-      emotion: Array.isArray(rawData.emotions) ? rawData.emotions[0] : rawData.emotions,
+      emotion: Array.isArray(rawData.emotions)
+        ? rawData.emotions[0] || null
+        : rawData.emotions || null,
       journal_entries: rawData.journal_entries || [],
     };
 
@@ -213,6 +215,14 @@ export const createJournal = async (journalData: {
     return data;
   } catch (err) {
     console.error('An unexpected error occurred while creating journal:', err);
+
+    // unique constraint 위반 에러 체크
+    if (err instanceof Error && err.message.includes('unique_user_date_journal')) {
+      const constraintError = new Error('하루에 하나의 일기만 작성할 수 있습니다.');
+      constraintError.name = 'UniqueConstraintError';
+      throw constraintError;
+    }
+
     throw err;
   }
 };
@@ -385,5 +395,122 @@ export const updateJournal = async (
   } catch (err) {
     console.error('An unexpected error occurred while updating journal:', err);
     throw err;
+  }
+};
+
+/**
+ * 그룹에 공유된 일기들을 가져옵니다.
+ * @param groupId 그룹 ID
+ */
+export const fetchGroupJournals = async (groupId: string): Promise<Journal[]> => {
+  if (!groupId) {
+    console.error('Group ID not provided, cannot fetch group journals');
+    return [];
+  }
+
+  try {
+    // 1. 그룹에 공유된 일기들을 가져오기
+    const { data: journalsData, error: journalsError } = await supabase
+      .from('journals')
+      .select(
+        `
+        *,
+        emotions (*),
+        journal_entries (*),
+        users (id, name, email, profile_img)
+      `
+      )
+      .contains('shared_groups', [groupId])
+      .order('created_at', { ascending: false });
+
+    if (journalsError) {
+      console.error('Error fetching group journals:', journalsError);
+      throw journalsError;
+    }
+
+    if (!journalsData || journalsData.length === 0) {
+      return [];
+    }
+
+    // 2. 작성자들의 user_id 목록 추출
+    const userIds = [...new Set(journalsData.map((j) => j.user_id))];
+
+    // 3. 각 작성자의 그룹 내 권한 정보 조회
+    const { data: membershipData, error: membershipError } = await supabase
+      .from('group_memberships')
+      .select('user_id, is_admin')
+      .eq('group_id', groupId)
+      .in('user_id', userIds);
+
+    if (membershipError) {
+      console.error('Error fetching group memberships:', membershipError);
+      throw membershipError;
+    }
+
+    // 4. 권한 정보를 Map으로 변환 (빠른 조회를 위해)
+    const membershipMap = new Map(membershipData?.map((m) => [m.user_id, m.is_admin]) || []);
+
+    // 5. 일기 데이터와 권한 정보 결합
+    const rawData = journalsData as (RawJournalData & { users: any })[];
+
+    const journalsWithDetails: Journal[] = rawData.map(
+      (j): Journal => ({
+        id: j.id,
+        user_id: j.user_id,
+        date: j.date,
+        mode: j.mode,
+        emotion_id: j.emotion_id,
+        shared_groups: j.shared_groups,
+        created_at: j.created_at,
+        updated_at: j.updated_at,
+        emotion: Array.isArray(j.emotions) ? j.emotions[0] || null : j.emotions || null,
+        journal_entries: j.journal_entries || null,
+        user: j.users
+          ? {
+              id: j.users.id,
+              name: j.users.name,
+              email: j.users.email,
+              profile_img: j.users.profile_img,
+              is_admin: membershipMap.get(j.user_id) || false,
+            }
+          : null,
+      })
+    );
+
+    return journalsWithDetails;
+  } catch (error) {
+    console.error('Error in fetchGroupJournals:', error);
+    throw error;
+  }
+};
+
+/**
+ * 특정 날짜에 사용자의 일기가 이미 존재하는지 확인합니다.
+ * @param userId 사용자 ID
+ * @param date 날짜 (YYYY-MM-DD)
+ */
+export const checkJournalExistsForDate = async (userId: string, date: string): Promise<boolean> => {
+  if (!userId || !date) {
+    console.error('User ID and date are required to check journal existence');
+    return false;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('journals')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .limit(1);
+
+    if (error) {
+      console.error('Error checking journal existence:', error);
+      throw error;
+    }
+
+    return data && data.length > 0;
+  } catch (err) {
+    console.error('An unexpected error occurred while checking journal existence:', err);
+    return false;
   }
 };

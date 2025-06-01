@@ -37,7 +37,7 @@ export interface GroupMemberWithUser extends GroupMembership {
     id: string;
     name?: string;
     email?: string;
-    avatar_url?: string;
+    profile_img?: string;
   };
 }
 
