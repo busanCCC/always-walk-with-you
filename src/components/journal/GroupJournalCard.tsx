@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Journal } from '@/types/journal';
-import { colors, spacing, fontStyles } from '@/constants/theme';
+import { colors } from '@/constants/theme';
 import { getUserDisplayName } from '@/utils/roleMapper';
-import Ionicons from '@expo/vector-icons/Ionicons';
 
 interface GroupJournalCardProps {
   journal: Journal;
@@ -15,10 +14,10 @@ const GroupJournalCard: React.FC<GroupJournalCardProps> = ({ journal, onPress })
 
   // 작성자 이름과 역할 가져오기
   const authorDisplayName = getUserDisplayName(
-    journal.user?.name,
-    journal.user?.email,
-    undefined, // role 필드 없음
-    journal.user?.is_admin
+    journal.user?.name || '알 수 없음',
+    journal.user?.email || '알 수 없음',
+    journal.user?.role || '알 수 없음',
+    journal.user?.is_admin || false
   );
 
   // 일기 내용 (첫 번째 entry의 텍스트)
@@ -63,15 +62,15 @@ const GroupJournalCard: React.FC<GroupJournalCardProps> = ({ journal, onPress })
         </View>
 
         <View style={styles.leftBottomSection}>
-          <View style={styles.actionGroup}>
+          {/* <View style={styles.actionGroup}>
             <Ionicons name="heart-outline" size={12} color={colors['grey-02']} />
             <Text style={styles.actionText}>0</Text>
-          </View>
+          </View> */}
 
-          <View style={styles.actionGroup}>
+          {/* <View style={styles.actionGroup}>
             <Ionicons name="chatbubble-outline" size={12} color={colors['grey-02']} />
             <Text style={styles.actionText}>0</Text>
-          </View>
+          </View> */}
         </View>
       </View>
 

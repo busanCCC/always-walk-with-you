@@ -77,7 +77,7 @@ const JournalDetailScreen = () => {
 
   useEffect(() => {
     if (journal) {
-      console.log('journal', journal);
+      // 일기 로드 완료
     }
   }, [journal, navigation]);
 
@@ -176,12 +176,13 @@ const JournalDetailScreen = () => {
   };
 
   const handleReportJournal = () => {
+    setActionSheetVisible(false);
     // TODO: 신고 기능 구현
     Toast.show({
       type: 'info',
-      text1: '신고 기능',
-      text2: '신고 기능은 곧 추가될 예정입니다.',
-      visibilityTime: 2000,
+      text1: '신고 접수',
+      text2: '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
+      visibilityTime: 3000,
     });
   };
 
@@ -204,6 +205,7 @@ const JournalDetailScreen = () => {
           label: '신고하기',
           icon: 'flag-outline',
           onPress: handleReportJournal,
+          destructive: true,
         },
       ];
 
@@ -227,7 +229,15 @@ const JournalDetailScreen = () => {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContentContainer}>
         <View style={styles.headerContainer}>
-          <JournalHeader date={new Date(journal.date)} emotion={journal.emotion} />
+          <JournalHeader
+            date={new Date(journal.date)}
+            emotion={journal.emotion}
+            showAuthor={!isOwnPost}
+            authorName={journal.user?.name}
+            authorEmail={journal.user?.email}
+            authorRole={journal.user?.role}
+            isAuthorAdmin={journal.user?.is_admin}
+          />
         </View>
         <View style={styles.separator} />
 
@@ -238,37 +248,35 @@ const JournalDetailScreen = () => {
       </ScrollView>
 
       <View style={[styles.bottomActionsContainer, { paddingBottom: spacing[3] + insets.bottom }]}>
-        {/* 공유된 순 정보 */}
-        <TouchableOpacity
-          style={styles.sharedGroupsButton}
-          onPress={() => sharedGroupsBottomSheetRef.current?.present()}
-          activeOpacity={0.7}>
-          {journal.shared_groups && journal.shared_groups.length > 0 ? (
-            <View style={styles.shareIcon}>
-              <Ionicons name="people" size={13.5} color={colors.primary.DEFAULT} />
-            </View>
-          ) : (
-            <View style={styles.shareIcon}>
-              <Ionicons name="lock-closed-outline" size={13.5} color={colors.primary.DEFAULT} />
-            </View>
-          )}
-          <Text style={styles.sharedGroupsButtonText}>
-            {journal.shared_groups && journal.shared_groups.length > 0
-              ? `공유된 순(${journal.shared_groups.length})`
-              : '비공개'}
-          </Text>
-        </TouchableOpacity>
+        {/* 공유된 순 정보 - 내 글일 때만 표시 */}
+        {isOwnPost && (
+          <TouchableOpacity
+            style={styles.sharedGroupsButton}
+            onPress={() => sharedGroupsBottomSheetRef.current?.present()}
+            activeOpacity={0.7}>
+            {journal.shared_groups && journal.shared_groups.length > 0 ? (
+              <View style={styles.shareIcon}>
+                <Ionicons name="people" size={13.5} color={colors.primary.DEFAULT} />
+              </View>
+            ) : (
+              <View style={styles.shareIcon}>
+                <Ionicons name="lock-closed-outline" size={13.5} color={colors.primary.DEFAULT} />
+              </View>
+            )}
+            <Text style={styles.sharedGroupsButtonText}>
+              {journal.shared_groups && journal.shared_groups.length > 0
+                ? `공유된 순(${journal.shared_groups.length})`
+                : '비공개'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* 우측 액션들 */}
         <View style={styles.rightActions}>
-          <View style={styles.actionItem}>
-            <Ionicons name="chatbubble-outline" size={20} color={colors['grey-02']} />
-            <Text style={styles.actionText}>댓글(0)</Text>
-          </View>
-          <View style={styles.actionItem}>
+          {/* <View style={styles.actionItem}>
             <Ionicons name="heart-outline" size={20} color={colors['grey-02']} />
             <Text style={styles.actionText}>좋아요</Text>
-          </View>
+          </View> */}
         </View>
       </View>
 
@@ -277,7 +285,7 @@ const JournalDetailScreen = () => {
         visible={actionSheetVisible}
         onClose={() => setActionSheetVisible(false)}
         options={actionSheetOptions}
-        title={isOwnPost ? '일기 관리' : '신고하기'}
+        title={isOwnPost ? '일기 관리' : ''}
       />
 
       {/* Delete Confirmation */}

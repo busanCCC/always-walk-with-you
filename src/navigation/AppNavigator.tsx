@@ -18,6 +18,7 @@ import JournalDetailScreen from '@/screens/JournalDetailScreen';
 import SelectJournalModeScreen from '@/screens/SelectJournalModeScreen';
 import CreateJournalScreen from '@/screens/CreateJournalScreen';
 import EditJournalScreen from '@/screens/EditJournalScreen';
+import { navigationRef } from '@/utils/NavigationService';
 
 // 스크린 타입 정의
 export type AuthStackParamList = {
@@ -60,7 +61,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName={session ? (profileCompleted ? 'Main' : 'ProfileSetup') : 'Auth'}>
         {session ? (

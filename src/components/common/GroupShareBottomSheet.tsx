@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors['light-grey-01'],
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.white,
+    borderColor: colors['light-grey-01'],
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
     marginBottom: spacing[3],

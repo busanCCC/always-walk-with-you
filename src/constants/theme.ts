@@ -28,6 +28,7 @@ export const colors = {
   'light-grey-02': '#DBDBDB',
   white: '#FFFFFF',
   black: '#000000',
+  destructive: '#FF0000',
 };
 
 export const fonts = {

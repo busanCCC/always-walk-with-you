@@ -7,15 +7,13 @@ export const getRoleDisplayName = (role: string | undefined, isAdmin?: boolean):
   // role 기반 매핑
   switch (role?.toLowerCase()) {
     case 'leader':
-      return '순장';
+      return '순장 ';
     case 'staff':
-      return '간사';
+      return '간사 ';
     case 'member':
-      return '순원';
-    case 'admin':
-      return '순 관리자';
+      return '순원 ';
     default:
-      return '순원'; // 기본값
+      return '외부인 '; // 기본값
   }
 };
 
@@ -23,8 +21,8 @@ export const getRoleDisplayName = (role: string | undefined, isAdmin?: boolean):
  * 사용자 이름과 역할을 조합한 표시명을 반환
  */
 export const getUserDisplayName = (
-  name: string | null | undefined,
-  email: string | null | undefined,
+  name?: string,
+  email?: string,
   role?: string,
   isAdmin?: boolean
 ): string => {
@@ -41,13 +39,14 @@ export const getMemberDisplayName = (member: {
   users: {
     name?: string | null;
     email?: string | null;
+    role?: string | null;
   };
   is_admin?: boolean;
 }): string => {
   return getUserDisplayName(
-    member.users.name,
-    member.users.email,
-    undefined, // role 필드 없음
+    member.users.name || undefined,
+    member.users.email || undefined,
+    member.users.role || undefined,
     member.is_admin
   );
 };

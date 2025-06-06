@@ -250,7 +250,11 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
                 onPress={handleShareToGroup}
                 disabled={disabled}>
                 <View style={styles.shareIcon}>
-                  <Ionicons name="share-outline" size={16} color={colors.primary.DEFAULT} />
+                  <Ionicons
+                    name="share-outline"
+                    size={16}
+                    color={disabled ? colors['light-grey-02'] : colors.primary.DEFAULT}
+                  />
                 </View>
                 <Text style={[styles.shareButtonText, disabled && styles.disabledText]}>
                   순에 공유하기({selectedGroupIds.length})

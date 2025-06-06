@@ -6,6 +6,8 @@ import {
   updateGroup,
   deleteGroup,
   fetchGroupMembers,
+  leaveGroup,
+  removeMemberFromGroup,
 } from '@/apis/groupApi';
 import {
   CreateGroupPayload,
@@ -128,6 +130,56 @@ export const useGroupMembers = (groupId: string | undefined) => {
     queryKey: groupId ? GROUP_KEYS.members(groupId) : ['groupMembers'],
     queryFn: () => fetchGroupMembers(groupId!),
     enabled: !!groupId,
+  });
+};
+
+/**
+ * 순에서 나가는 훅
+ */
+export const useLeaveGroup = () => {
+  const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.session?.user?.id);
+
+  return useMutation({
+    mutationFn: (groupId: string) => leaveGroup(groupId),
+    onSuccess: (_data, groupId) => {
+      queryClient.invalidateQueries({ queryKey: GROUP_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: GROUP_KEYS.userGroups(userId) });
+
+      // journalQueries의 useUserGroupsForSharing 쿼리도 무효화 (순 공유 리스트 업데이트를 위해)
+      queryClient.invalidateQueries({ queryKey: ['userGroupsForSharing', userId] });
+
+      // 해당 순의 일기 목록 캐시 무효화 (나간 사용자의 일기가 사라져야 함)
+      queryClient.invalidateQueries({ queryKey: ['groupJournals', groupId] });
+    },
+  });
+};
+
+/**
+ * 그룹에서 멤버를 삭제하는 훅 (관리자 권한 필요)
+ */
+export const useRemoveMember = () => {
+  const queryClient = useQueryClient();
+  const userId = useAuthStore((state) => state.session?.user?.id);
+
+  return useMutation({
+    mutationFn: ({ groupId, memberUserId }: { groupId: string; memberUserId: string }) =>
+      removeMemberFromGroup(groupId, memberUserId),
+    onSuccess: (_data, variables) => {
+      // 그룹 멤버 목록 무효화
+      queryClient.invalidateQueries({ queryKey: GROUP_KEYS.members(variables.groupId) });
+      // 그룹 상세 정보 무효화 (멤버 수 업데이트)
+      queryClient.invalidateQueries({ queryKey: GROUP_KEYS.detail(variables.groupId) });
+      // 사용자 그룹 목록 무효화
+      queryClient.invalidateQueries({ queryKey: GROUP_KEYS.userGroups(userId) });
+
+      // 해당 순의 일기 목록 캐시 무효화 (삭제된 멤버의 일기가 사라져야 함)
+      queryClient.invalidateQueries({ queryKey: ['groupJournals', variables.groupId] });
+
+      // 즉시 refetch 시도
+      queryClient.refetchQueries({ queryKey: GROUP_KEYS.members(variables.groupId) });
+      queryClient.refetchQueries({ queryKey: GROUP_KEYS.detail(variables.groupId) });
+    },
   });
 };
 

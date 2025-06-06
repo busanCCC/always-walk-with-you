@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "always-walk-with-you",
+    "name": "매일동행",
     "slug": "always-walk-with-you",
     "scheme": "alwayswalkwithyouauth",
     "version": "1.0.0",
@@ -18,7 +18,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./src/assets/images/logo.png",
+          "image": "./src/assets/images/logo-white.png",
           "backgroundColor": "#2584F0",
           "imageWidth": 150,
           "resizeMode": "contain"
@@ -34,7 +34,7 @@
     ],
     "splash": {
       "backgroundColor": "#2584F0",
-      "image": "./src/assets/images/logo.png",
+      "image": "./src/assets/images/logo-white.png",
       "imageResizeMode": "contain"
     },
     "orientation": "portrait",
@@ -50,13 +50,26 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/images/logo.png",
+        "foregroundImage": "./src/assets/images/logo-white.png",
         "backgroundColor": "#2584F0"
       },
       "package": "com.busancc.alwayswalkwithyou",
       "statusBar": {
         "backgroundColor": "#ffffff"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "yrklwyajimcbotusopye.supabase.co"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "extra": {
       "eas": {

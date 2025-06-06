@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { colors, fontStyles, spacing } from '@/constants/theme';
 import { Emotion } from '@/types/journal';
+import { getUserDisplayName } from '@/utils/roleMapper';
 
 interface JournalHeaderProps {
   date?: Date;
@@ -9,6 +10,12 @@ interface JournalHeaderProps {
   showEmptyEmotion?: boolean; // 비어있는 감정 아이콘 표시 여부
   onEmotionPress?: () => void; // 감정 아이콘 클릭 핸들러
   defaultEmotion?: Emotion; // 기본 감정 (행복)
+  // 작성자 정보 (다른 사람 글일 때 표시)
+  authorName?: string | null;
+  authorEmail?: string | null;
+  authorRole?: string;
+  isAuthorAdmin?: boolean;
+  showAuthor?: boolean; // 작성자 정보 표시 여부
 }
 
 const JournalHeader: React.FC<JournalHeaderProps> = ({
@@ -17,6 +24,11 @@ const JournalHeader: React.FC<JournalHeaderProps> = ({
   showEmptyEmotion = false,
   onEmotionPress,
   defaultEmotion,
+  authorName,
+  authorEmail,
+  authorRole,
+  isAuthorAdmin,
+  showAuthor = false,
 }) => {
   const formatDate = (date: Date) => {
     const year = date.getFullYear().toString().slice(-2);
@@ -75,7 +87,22 @@ const JournalHeader: React.FC<JournalHeaderProps> = ({
     <View style={styles.container}>
       <View style={styles.dateContainer}>
         <Text style={styles.dateText}>{formatDate(date)}</Text>
-        <Text style={styles.dayText}>{getDayOfWeek(date)}</Text>
+        <View style={styles.dayAndAuthorContainer}>
+          <Text style={styles.dayText}>{getDayOfWeek(date)}</Text>
+          {showAuthor && (
+            <>
+              <Text style={styles.separator}>•</Text>
+              <Text style={styles.authorText}>
+                {getUserDisplayName(
+                  authorName || '알 수 없음',
+                  authorEmail || '알 수 없음',
+                  authorRole || '알 수 없음',
+                  isAuthorAdmin || false
+                )}
+              </Text>
+            </>
+          )}
+        </View>
       </View>
       {renderEmotionIcon()}
     </View>
@@ -98,9 +125,24 @@ const styles = StyleSheet.create({
     ...fontStyles['lg-tight'],
     color: colors['dark-grey-02'],
   },
+  dayAndAuthorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
   dayText: {
     ...fontStyles['sm-normal'],
     color: colors['grey-02'],
+  },
+  separator: {
+    ...fontStyles['sm-normal'],
+    color: colors['grey-02'],
+    marginHorizontal: spacing[1],
+  },
+  authorText: {
+    ...fontStyles['sm-normal'],
+    color: colors['grey-02'],
+    fontWeight: '500',
   },
   emotionContainer: {
     alignItems: 'center',

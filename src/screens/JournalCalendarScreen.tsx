@@ -155,10 +155,7 @@ const JournalCalendarScreen = () => {
     navigation.navigate('SelectJournalMode', {});
   };
 
-  // onDayPress 함수 수정
   const onDayPress = (day: DateData) => {
-    console.log('selected day', day);
-
     const selectedDateString = day.dateString;
     const existingJournal = findJournalForDate(allFetchedJournals, selectedDateString);
 

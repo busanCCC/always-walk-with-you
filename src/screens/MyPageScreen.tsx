@@ -13,6 +13,7 @@ import theme from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/utils/supabaseClient';
 import UserIcon from '@/assets/svg/user-icon.svg';
+import { getRoleDisplayName } from '@/utils/roleMapper';
 
 interface UserProfile {
   id: string;
@@ -96,7 +97,9 @@ const MyPageScreen = () => {
           {userProfile?.campus && (
             <Text style={styles.profileMeta}>캠퍼스: {userProfile.campus}</Text>
           )}
-          {userProfile?.role && <Text style={styles.profileMeta}>역할: {userProfile.role}</Text>}
+          {userProfile?.role && (
+            <Text style={styles.profileMeta}>역할: {getRoleDisplayName(userProfile.role)}</Text>
+          )}
         </View>
 
         {/* 메뉴 리스트 (주석 처리됨, 필요시 확장) */}

@@ -11,6 +11,7 @@ import {
   Dimensions,
   Animated,
   FlatList,
+  Share,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,6 +23,8 @@ import {
   useUpdateGroup,
   useDeleteGroup,
   useGroupMembers,
+  useLeaveGroup,
+  useRemoveMember,
 } from '@/queries/groupQueries';
 import { useGroupJournals } from '@/queries/journalQueries';
 import { UpdateGroupPayload } from '@/types/group';
@@ -31,6 +34,10 @@ import AlertModal from '@/components/common/AlertModal';
 import GroupJournalCard from '@/components/journal/GroupJournalCard';
 import { getMemberDisplayName } from '@/utils/roleMapper';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Clipboard from 'expo-clipboard';
+import Toast from 'react-native-toast-message';
+import { createGroupInvite } from '@/apis/groupApi';
+import { useAuthStore } from '@/store/authStore';
 
 type GroupDetailScreenRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 const { width } = Dimensions.get('window');
@@ -45,6 +52,11 @@ const GroupDetailScreen = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [leaveModalVisible, setLeaveModalVisible] = useState(false);
+  const [removeMemberModalVisible, setRemoveMemberModalVisible] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<{ id: string; name: string } | null>(null);
+  const [isCreatingInvite, setIsCreatingInvite] = useState(false);
   const [alertModal, setAlertModal] = useState<{
     visible: boolean;
     title: string;
@@ -78,12 +90,15 @@ const GroupDetailScreen = () => {
     isLoading: membersLoading,
     isError: membersError,
     refetch: refetchMembers,
-  } = useGroupMembers(drawerVisible ? groupId : undefined); // Drawer가 열려있을 때만 멤버 정보 요청
+  } = useGroupMembers(groupId); // 항상 멤버 정보 요청하도록 변경
 
   const updateGroupMutation = useUpdateGroup();
   const deleteGroupMutation = useDeleteGroup();
+  const leaveGroupMutation = useLeaveGroup();
+  const removeMemberMutation = useRemoveMember();
 
   const isAdmin = groupDetails?.is_admin || false;
+  const currentUserId = useAuthStore((state) => state.session?.user?.id);
 
   // 일기 카드 클릭 핸들러
   const handleJournalPress = (journal: Journal) => {
@@ -114,7 +129,8 @@ const GroupDetailScreen = () => {
           disabled={isLoading}>
           <Ionicons
             name={drawerVisible ? 'close' : 'menu'}
-            size={spacing[6]}
+            // size={spacing[6]}
+            size={20}
             color={isLoading ? colors['grey-02'] : colors['grey-01']}
           />
         </TouchableOpacity>
@@ -160,6 +176,16 @@ const GroupDetailScreen = () => {
 
   const showDeleteModal = () => {
     setDeleteModalVisible(true);
+    closeDrawer();
+  };
+
+  const showInviteModal = () => {
+    setInviteModalVisible(true);
+    closeDrawer();
+  };
+
+  const showLeaveModal = () => {
+    setLeaveModalVisible(true);
     closeDrawer();
   };
 
@@ -210,6 +236,90 @@ const GroupDetailScreen = () => {
     });
   };
 
+  const handleCreateInvite = async () => {
+    setIsCreatingInvite(true);
+    try {
+      const invite = await createGroupInvite({
+        group_id: groupId,
+        expires_in_hours: 24,
+      });
+
+      // 초대 링크 생성
+      const inviteUrl = `https://invite-awwy.vercel.app/invite/${groupId}/${invite.invite_token}`;
+
+      // 공유 시트 열기
+      const result = await Share.share({
+        message: `'${groupDetails?.name || '순'}' 순에 초대합니다!\n\n${inviteUrl}`,
+        url: inviteUrl,
+        title: '순 초대',
+      });
+
+      if (result.action === Share.sharedAction) {
+        showAlert('초대 완료', '초대 링크가 성공적으로 공유되었습니다.');
+      }
+
+      setInviteModalVisible(false);
+    } catch (error) {
+      console.error('초대 링크 생성 오류:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : '초대 링크 생성에 실패했습니다.';
+      showAlert('오류', errorMessage);
+    } finally {
+      setIsCreatingInvite(false);
+    }
+  };
+
+  const handleLeaveConfirm = () => {
+    if (!groupId) return;
+
+    leaveGroupMutation.mutate(groupId, {
+      onSuccess: () => {
+        setLeaveModalVisible(false);
+        showAlert('순 나가기 완료', '순에서 성공적으로 나갔습니다.');
+        // 약간의 지연 후 뒤로 가기
+        setTimeout(() => {
+          navigation.goBack();
+        }, 1500);
+      },
+      onError: (error) => {
+        console.error('Leave group error:', error);
+        showAlert('순 나가기 실패', error.message || '순 나가기 중 오류가 발생했습니다.');
+      },
+    });
+  };
+
+  const showRemoveMemberModal = (memberUserId: string, memberName: string) => {
+    setMemberToRemove({ id: memberUserId, name: memberName });
+    setRemoveMemberModalVisible(true);
+  };
+
+  const handleRemoveMemberConfirm = () => {
+    if (!groupId || !memberToRemove) return;
+
+    removeMemberMutation.mutate(
+      { groupId, memberUserId: memberToRemove.id },
+      {
+        onSuccess: () => {
+          setRemoveMemberModalVisible(false);
+          setMemberToRemove(null);
+
+          // 즉시 멤버 목록 새로고침
+          refetchMembers();
+
+          showAlert('멤버 삭제 완료', `${memberToRemove.name}님이 순에서 삭제되었습니다.`);
+        },
+        onError: (error) => {
+          console.error('[handleRemoveMemberConfirm] 멤버 삭제 실패:', error);
+          console.error('Error details:', JSON.stringify(error, null, 2));
+          showAlert(
+            '멤버 삭제 실패',
+            `${error.message || '멤버 삭제 중 오류가 발생했습니다.'}\n\n자세한 내용은 콘솔을 확인해주세요.`
+          );
+        },
+      }
+    );
+  };
+
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
@@ -252,7 +362,7 @@ const GroupDetailScreen = () => {
           )}
           ListEmptyComponent={() => (
             <View style={styles.centerContainer}>
-              <Text style={styles.placeholderText}>해당 순에 공유된 일기가 없습니다.</Text>
+              <Text style={styles.placeholderText}>아직 공유된 영성일기가 없어요</Text>
             </View>
           )}
           contentContainerStyle={groupJournals?.length === 0 ? styles.centerContainer : undefined}
@@ -327,6 +437,19 @@ const GroupDetailScreen = () => {
                             <View style={styles.memberInfo}>
                               <Text style={styles.memberName}>{getMemberDisplayName(member)}</Text>
                             </View>
+                            {/* 관리자이고 자기 자신이 아닌 경우에만 삭제 버튼 표시 */}
+                            {isAdmin && member.user_id !== currentUserId && (
+                              <TouchableOpacity
+                                style={styles.removeMemberButton}
+                                onPress={() =>
+                                  showRemoveMemberModal(
+                                    member.user_id,
+                                    member.users.name || member.users.email || '알 수 없는 사용자'
+                                  )
+                                }>
+                                <Ionicons name="close" size={16} color={colors['grey-01']} />
+                              </TouchableOpacity>
+                            )}
                           </View>
                         ))}
                     </>
@@ -334,16 +457,29 @@ const GroupDetailScreen = () => {
                 </View>
               </View>
 
-              {isAdmin && (
-                <View style={styles.adminSection}>
+              {isAdmin ? (
+                <View style={styles.buttonSection}>
+                  <TouchableOpacity style={styles.drawerButton} onPress={showInviteModal}>
+                    <Ionicons name="person-add-outline" size={20} color={colors['dark-grey-01']} />
+                    <Text style={styles.drawerButtonText}>멤버 초대</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity style={styles.drawerButton} onPress={showEditModal}>
                     <Ionicons name="create-outline" size={20} color={colors['dark-grey-01']} />
                     <Text style={styles.drawerButtonText}>순 정보 수정</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.drawerButton} onPress={showDeleteModal}>
-                    <Ionicons name="trash-outline" size={20} color={colors.secondary.DEFAULT} />
-                    <Text style={[styles.drawerButtonText, { color: colors.secondary.DEFAULT }]}>
+                    <Ionicons name="trash-outline" size={20} color={colors.destructive} />
+                    <Text style={[styles.drawerButtonText, { color: colors.destructive }]}>
                       순 삭제하기
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.buttonSection}>
+                  <TouchableOpacity style={styles.drawerButton} onPress={showLeaveModal}>
+                    <Ionicons name="exit-outline" size={20} color={colors.destructive} />
+                    <Text style={[styles.drawerButtonText, { color: colors.destructive }]}>
+                      순 나가기
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -449,6 +585,117 @@ const GroupDetailScreen = () => {
         </View>
       </GroupModal>
 
+      {/* 초대 모달 - GroupModal 컴포넌트 사용 */}
+      <GroupModal
+        visible={inviteModalVisible}
+        onClose={() => !isCreatingInvite && setInviteModalVisible(false)}
+        title="멤버 초대하기">
+        <Text style={styles.inviteDescriptionText}>
+          초대 링크를 생성하여 새로운 순원을 초대할 수 있습니다.
+        </Text>
+        <Text style={styles.inviteWarningText}>
+          • 초대 링크는 24시간 후 자동으로 만료됩니다{'\n'}• 링크를 받은 사람은 자동으로 순에
+          가입됩니다{'\n'}• 링크 생성 후 바로 공유 창이 열립니다
+        </Text>
+
+        <View style={styles.modalButtonContainer}>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.cancelButton]}
+            onPress={() => setInviteModalVisible(false)}
+            disabled={isCreatingInvite}>
+            <Text style={[styles.cancelButtonText, isCreatingInvite && styles.disabledButtonText]}>
+              취소
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.saveButton]}
+            onPress={handleCreateInvite}
+            disabled={isCreatingInvite}>
+            {isCreatingInvite ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Text style={styles.saveButtonText}>초대 링크 생성</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </GroupModal>
+
+      {/* 순 나가기 모달 - GroupModal 컴포넌트 사용 */}
+      <GroupModal
+        visible={leaveModalVisible}
+        onClose={() => !leaveGroupMutation.isPending && setLeaveModalVisible(false)}
+        title="순 나가기">
+        <Text style={styles.leaveModalText}>'{groupDetails?.name}' 순을 나가시겠습니까?</Text>
+        <Text style={styles.leaveWarningText}>
+          순을 나가면 해당 순의 영성일기에 접근할 수 없게 됩니다.{'\n'}
+          다시 참여하려면 새로운 초대 링크가 필요합니다.
+        </Text>
+
+        <View style={styles.modalButtonContainer}>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.cancelButton]}
+            onPress={() => setLeaveModalVisible(false)}
+            disabled={leaveGroupMutation.isPending}>
+            <Text
+              style={[
+                styles.cancelButtonText,
+                leaveGroupMutation.isPending && styles.disabledButtonText,
+              ]}>
+              취소
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.leaveButton]}
+            onPress={handleLeaveConfirm}
+            disabled={leaveGroupMutation.isPending}>
+            {leaveGroupMutation.isPending ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Text style={styles.leaveButtonText}>나가기</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </GroupModal>
+
+      {/* 멤버 삭제 확인 모달 - GroupModal 컴포넌트 사용 */}
+      <GroupModal
+        visible={removeMemberModalVisible}
+        onClose={() => !removeMemberMutation.isPending && setRemoveMemberModalVisible(false)}
+        title="멤버 삭제">
+        <Text style={styles.deleteModalText}>
+          '{memberToRemove?.name}' 님을 순에서 삭제하시겠습니까?
+        </Text>
+        <Text style={styles.deleteWarningText}>
+          삭제된 멤버의 일기는 해당 순에서 더 이상 보이지 않으며,{'\n'}
+          다시 참여하려면 새로운 초대 링크가 필요합니다.
+        </Text>
+
+        <View style={styles.modalButtonContainer}>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.cancelButton]}
+            onPress={() => setRemoveMemberModalVisible(false)}
+            disabled={removeMemberMutation.isPending}>
+            <Text
+              style={[
+                styles.cancelButtonText,
+                removeMemberMutation.isPending && styles.disabledButtonText,
+              ]}>
+              취소
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modalButton, styles.deleteButton]}
+            onPress={handleRemoveMemberConfirm}
+            disabled={removeMemberMutation.isPending}>
+            {removeMemberMutation.isPending ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Text style={styles.deleteButtonText}>삭제</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </GroupModal>
+
       {/* Alert Modal */}
       <AlertModal
         visible={alertModal.visible}
@@ -503,8 +750,8 @@ const styles = StyleSheet.create({
   drawerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing[2],
-    marginRight: spacing[2],
+    // padding: spacing[2],
+    // marginRight: spacing[2],
   },
 
   // Drawer 스타일
@@ -569,8 +816,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors['light-grey-01'],
   },
   memberAvatar: {
     width: 36,
@@ -610,8 +855,9 @@ const styles = StyleSheet.create({
     color: colors.primary.DEFAULT,
     textDecorationLine: 'underline',
   },
-  adminSection: {
+  buttonSection: {
     padding: spacing[4],
+    gap: spacing[3],
     borderTopWidth: 1,
     borderTopColor: colors['light-grey-02'],
   },
@@ -710,12 +956,12 @@ const styles = StyleSheet.create({
   },
   deleteWarningText: {
     ...fontStyles['sm-normal'],
-    color: colors.secondary.DEFAULT,
+    color: colors.danger.DEFAULT,
     marginBottom: spacing[4],
     textAlign: 'center',
   },
   deleteButton: {
-    backgroundColor: colors.secondary.DEFAULT,
+    backgroundColor: colors.danger.DEFAULT,
   },
   deleteButtonText: {
     ...fontStyles['base-tight'],
@@ -736,6 +982,36 @@ const styles = StyleSheet.create({
   },
   headerButtonContainer: {
     paddingHorizontal: spacing[2],
+  },
+  inviteDescriptionText: {
+    ...fontStyles['base-normal'],
+    color: colors['dark-grey-01'],
+    marginBottom: spacing[2],
+  },
+  inviteWarningText: {
+    ...fontStyles['sm-normal'],
+    color: colors['grey-02'],
+    marginBottom: spacing[4],
+  },
+  leaveModalText: {
+    ...fontStyles['base-normal'],
+    color: colors['dark-grey-01'],
+    marginBottom: spacing[2],
+  },
+  leaveWarningText: {
+    ...fontStyles['sm-normal'],
+    color: colors['grey-02'],
+    marginBottom: spacing[4],
+  },
+  leaveButton: {
+    backgroundColor: colors.danger.DEFAULT,
+  },
+  leaveButtonText: {
+    ...fontStyles['base-tight'],
+    color: colors.white,
+  },
+  removeMemberButton: {
+    padding: spacing[1],
   },
 });
 

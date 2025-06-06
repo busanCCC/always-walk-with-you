@@ -73,17 +73,15 @@ export const fetchJournalById = async (journalId: string): Promise<Journal> => {
     throw new Error('Journal ID is required.');
   }
 
-  console.log(`Fetching journal detail for ID: ${journalId}`); // 조회 시도 ID 로깅
-
   try {
     const { data, error } = await supabase
       .from('journals')
       .select(
         `
         *,
-        user_id,
         emotions (*),
-        journal_entries (*)
+        journal_entries (*),
+        users (id, name, email, profile_img, role)
       `
       )
       .eq('id', journalId)
@@ -103,7 +101,21 @@ export const fetchJournalById = async (journalId: string): Promise<Journal> => {
       throw new Error(errorMessage);
     }
 
-    const rawData = data as RawJournalData;
+    const rawData = data as RawJournalData & { users: any };
+
+    // 만약 일기가 그룹에 공유되었다면 작성자의 그룹 권한 정보 조회
+    let isAuthorAdmin = false;
+    if (rawData.shared_groups && rawData.shared_groups.length > 0 && rawData.users) {
+      // 첫 번째 공유 그룹에서의 권한을 확인 (여러 그룹일 경우 첫 번째 그룹 기준)
+      const { data: membershipData } = await supabase
+        .from('group_memberships')
+        .select('is_admin')
+        .eq('group_id', rawData.shared_groups[0])
+        .eq('user_id', rawData.user_id)
+        .single();
+
+      isAuthorAdmin = membershipData?.is_admin || false;
+    }
 
     const journalWithDetails: Journal = {
       ...rawData,
@@ -111,6 +123,16 @@ export const fetchJournalById = async (journalId: string): Promise<Journal> => {
         ? rawData.emotions[0] || null
         : rawData.emotions || null,
       journal_entries: rawData.journal_entries || [],
+      user: rawData.users
+        ? {
+            id: rawData.users.id,
+            name: rawData.users.name,
+            email: rawData.users.email,
+            profile_img: rawData.users.profile_img,
+            is_admin: isAuthorAdmin,
+            role: rawData.users.role || 'member',
+          }
+        : null,
     };
 
     return journalWithDetails;
@@ -273,8 +295,6 @@ export const deleteJournal = async (journalId: string, userId: string): Promise<
       console.error('Error deleting journal:', deleteError);
       throw deleteError;
     }
-
-    console.log(`Journal ${journalId} deleted successfully`);
   } catch (err) {
     console.error('An unexpected error occurred while deleting journal:', err);
     throw err;
@@ -390,7 +410,6 @@ export const updateJournal = async (
 
     // 3. 업데이트된 일기 데이터 반환
     const updatedJournal = await fetchJournalById(journalId);
-    console.log(`Journal ${journalId} updated successfully`);
     return updatedJournal;
   } catch (err) {
     console.error('An unexpected error occurred while updating journal:', err);
@@ -417,7 +436,7 @@ export const fetchGroupJournals = async (groupId: string): Promise<Journal[]> =>
         *,
         emotions (*),
         journal_entries (*),
-        users (id, name, email, profile_img)
+        users (id, name, email, profile_img, role)
       `
       )
       .contains('shared_groups', [groupId])
@@ -472,6 +491,7 @@ export const fetchGroupJournals = async (groupId: string): Promise<Journal[]> =>
               email: j.users.email,
               profile_img: j.users.profile_img,
               is_admin: membershipMap.get(j.user_id) || false,
+              role: j.users.role,
             }
           : null,
       })

@@ -1,5 +1,5 @@
 import React, { useState, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -110,7 +110,6 @@ const SelectJournalModeScreen: React.FC = () => {
   }, [navigation]);
 
   const handleModePress = (mode: JournalMode) => {
-    console.log('Selected mode (navigating immediately):', mode);
     if (mode === 'free_writing') {
       navigation.replace('CreateJournalFreeWrite', { selectedDate });
     } else if (mode === 'prompt_based') {

@@ -82,7 +82,7 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ visible, onClose, onSucce
             <Text style={styles.inputLabel}>순 설명</Text>
             <TextInput
               style={styles.input}
-              placeholder="인제대학교 순장 순원들 모임"
+              placeholder="예) 인제대학교 순장 순원들 모임"
               value={description}
               onChangeText={setDescription}
               autoCapitalize="none"

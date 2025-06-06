@@ -23,6 +23,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/navigation/types';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LoadingScreen } from '@/navigation/components/LoadingScreen';
 
 interface WeekDayData {
   day: string;
@@ -116,14 +117,7 @@ const HomeScreen = () => {
   };
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.safeArea, styles.centered]}>
-        <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
-        <Text style={{ marginTop: spacing['3'], color: colors['grey-04'] }}>
-          데이터를 불러오는 중...
-        </Text>
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
 
   if (isError && error) {

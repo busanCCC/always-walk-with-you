@@ -37,6 +37,7 @@ export interface Journal {
     email?: string | null;
     profile_img?: string | null;
     is_admin?: boolean; // 그룹 관리자 여부
+    role?: string; // 사용자 역할 (leader, staff, member 등)
   } | null; // 작성자 정보 (그룹 일기 조회 시 포함)
 }
 

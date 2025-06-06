@@ -1,6 +1,7 @@
 import { create, StateCreator } from 'zustand';
 import { supabase } from '@/utils/supabaseClient';
 import { Session, User } from '@supabase/supabase-js';
+import Toast from 'react-native-toast-message';
 
 export interface AuthState {
   session: Session | null;
@@ -30,8 +31,24 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
       } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.error('[AuthStore] initializeAuth: Supabase getSession error:', sessionError.message);
-        set({ session: null, user: null, loading: false, isInitialized: true, profileCompleted: false });
+        console.error(
+          '[AuthStore] initializeAuth: Supabase getSession error:',
+          sessionError.message
+        );
+        set({
+          session: null,
+          user: null,
+          loading: false,
+          isInitialized: true,
+          profileCompleted: false,
+        });
+
+        Toast.show({
+          type: 'error',
+          text1: '로그인 상태 확인 실패',
+          text2: '네트워크 연결을 확인해주세요.',
+          visibilityTime: 3000,
+        });
         return;
       }
 
@@ -45,24 +62,56 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
         console.log('[AuthStore] initializeAuth: User profile:', userProfile);
 
         if (profileError && profileError.code !== 'PGRST116') {
-          console.error('[AuthStore] initializeAuth: Error fetching user profile:', profileError.message);
+          console.error(
+            '[AuthStore] initializeAuth: Error fetching user profile:',
+            profileError.message
+          );
+          Toast.show({
+            type: 'error',
+            text1: '사용자 정보 로딩 실패',
+            text2: '프로필 정보를 불러올 수 없습니다.',
+            visibilityTime: 3000,
+          });
         }
-        
-        const isProfileComplete = userProfile && userProfile.name && userProfile.campus && userProfile.student_id && userProfile.role;
+
+        const isProfileComplete =
+          userProfile &&
+          userProfile.name &&
+          userProfile.campus &&
+          userProfile.student_id &&
+          userProfile.role;
         set({
           session: initialSession,
           user: initialSession.user,
           loading: false,
           isInitialized: true,
-          profileCompleted: !!isProfileComplete, // 프로필 완전 여부에 따라 설정
+          profileCompleted: !!isProfileComplete,
         });
       } else {
-        // console.log('[AuthStore] initializeAuth: No session found');
-        set({ session: null, user: null, loading: false, isInitialized: true, profileCompleted: false });
+        set({
+          session: null,
+          user: null,
+          loading: false,
+          isInitialized: true,
+          profileCompleted: false,
+        });
       }
     } catch (error) {
       console.error('[AuthStore] initializeAuth: Exception:', error);
-      set({ session: null, user: null, loading: false, isInitialized: true, profileCompleted: false });
+      set({
+        session: null,
+        user: null,
+        loading: false,
+        isInitialized: true,
+        profileCompleted: false,
+      });
+
+      Toast.show({
+        type: 'error',
+        text1: '앱 초기화 실패',
+        text2: '잠시 후 다시 시도해주세요.',
+        visibilityTime: 4000,
+      });
     }
   },
 
@@ -75,27 +124,76 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
         .single()
         .then(({ data: userProfile, error: profileError }) => {
           if (profileError && profileError.code !== 'PGRST116') {
-            console.error('[AuthStore] setSessionData: Error fetching user profile:', profileError.message);
+            console.error(
+              '[AuthStore] setSessionData: Error fetching user profile:',
+              profileError.message
+            );
+            Toast.show({
+              type: 'error',
+              text1: '프로필 정보 오류',
+              text2: '사용자 정보를 불러오는데 실패했습니다.',
+              visibilityTime: 3000,
+            });
           }
-          const isProfileComplete = userProfile && userProfile.name && userProfile.campus && userProfile.student_id && userProfile.role;
-          set({ session, user, loading: false, isInitialized: true, profileCompleted: !!isProfileComplete });
+          const isProfileComplete =
+            userProfile &&
+            userProfile.name &&
+            userProfile.campus &&
+            userProfile.student_id &&
+            userProfile.role;
+          set({
+            session,
+            user,
+            loading: false,
+            isInitialized: true,
+            profileCompleted: !!isProfileComplete,
+          });
         });
     } else {
-      set({ session: null, user: null, loading: false, isInitialized: true, profileCompleted: false });
+      set({
+        session: null,
+        user: null,
+        loading: false,
+        isInitialized: true,
+        profileCompleted: false,
+      });
     }
   },
 
   signOut: async () => {
-    // console.log('[AuthStore] signOut: Called');
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('[AuthStore] signOut: Supabase signOut error:', error.message);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('[AuthStore] signOut: Supabase signOut error:', error.message);
+        Toast.show({
+          type: 'error',
+          text1: '로그아웃 실패',
+          text2: '다시 시도해주세요.',
+          visibilityTime: 3000,
+        });
+        return;
+      }
+
+      set({ session: null, user: null, loading: false, profileCompleted: false });
+      Toast.show({
+        type: 'success',
+        text1: '로그아웃 완료',
+        text2: '안전하게 로그아웃되었습니다.',
+        visibilityTime: 2000,
+      });
+    } catch (error) {
+      console.error('[AuthStore] signOut: Exception:', error);
+      Toast.show({
+        type: 'error',
+        text1: '로그아웃 오류',
+        text2: '예상치 못한 오류가 발생했습니다.',
+        visibilityTime: 3000,
+      });
     }
-    set({ session: null, user: null, loading: false, profileCompleted: false }); // 로그아웃 시 모든 상태 초기화
   },
 
   setProfileCompleted: (completed) => {
-    set({ profileCompleted: completed, loading: false }); 
+    set({ profileCompleted: completed, loading: false });
   },
 });
 
