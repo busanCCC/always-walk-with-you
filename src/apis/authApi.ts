@@ -3,6 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Session, User } from '@supabase/supabase-js';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Platform } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 // 앱의 커스텀 스킴으로 직접 리다이렉트 (Expo 개발 서버 우회)
 const redirectUri = 'alwayswalkwithyouauth://auth/callback';
@@ -20,6 +21,7 @@ export interface LoginResult {
 
 export interface KakaoLoginResult extends LoginResult {}
 export interface GoogleLoginResult extends LoginResult {}
+export interface AppleLoginResult extends LoginResult {}
 
 export const signInWithKakao = async (): Promise<KakaoLoginResult> => {
   try {
@@ -168,6 +170,69 @@ export const signInWithGoogle = async (): Promise<GoogleLoginResult> => {
     }
 
     return { session: null, user: null, error: err.message || 'Unknown Google login error' };
+  }
+};
+
+export const signInWithApple = async (): Promise<AppleLoginResult> => {
+  try {
+    console.log('Starting Apple login...');
+
+    // Apple 로그인 요청
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+
+    console.log('Apple sign-in successful, credential:', credential);
+
+    if (!credential.identityToken) {
+      console.error('Apple identity token not found');
+      return { session: null, user: null, error: 'Apple identity token not found' };
+    }
+
+    console.log('Authenticating with Supabase using Apple identity token...');
+
+    // Supabase에 Apple ID 토큰으로 로그인
+    const { data: sessionData, error: sessionError } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: credential.identityToken,
+    });
+
+    if (sessionError) {
+      console.error('Supabase Apple login error:', sessionError.message);
+      return { session: null, user: null, error: sessionError.message };
+    }
+
+    if (sessionData.session && sessionData.user) {
+      console.log('Apple login successful!');
+      return { session: sessionData.session, user: sessionData.user };
+    }
+
+    console.error('Session or user data missing after Apple login');
+    return { session: null, user: null, error: 'Session or user data missing' };
+  } catch (err: any) {
+    console.error('Apple login error:', err);
+
+    if (err.code === 'ERR_REQUEST_CANCELED') {
+      return { session: null, user: null, error: 'Apple login was cancelled' };
+    }
+
+    return { session: null, user: null, error: err.message || 'Unknown Apple login error' };
+  }
+};
+
+// Apple 로그인 가능 여부 확인 (iOS에서만 사용 가능)
+export const isAppleAuthenticationAvailable = async (): Promise<boolean> => {
+  if (Platform.OS !== 'ios') {
+    return false;
+  }
+
+  try {
+    return await AppleAuthentication.isAvailableAsync();
+  } catch {
+    return false;
   }
 };
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -11,11 +11,19 @@ import {
 import StyledText from '@/components/common/StyledText';
 import KakaoIcon from '@/assets/svg/kakao-icon.svg';
 import GoogleIcon from '@/assets/svg/google-icon.svg';
+import AppleIcon from '@/assets/svg/apple-icon.svg';
 import theme from '@/constants/theme';
 import logo from '@/assets/images/logo.png';
-import { useSignInWithGoogleMutation, useSignInWithKakaoMutation } from '@/queries/authQueries';
+import {
+  useSignInWithGoogleMutation,
+  useSignInWithKakaoMutation,
+  useSignInWithAppleMutation,
+} from '@/queries/authQueries';
+import { isAppleAuthenticationAvailable } from '@/apis/authApi';
 
 export default function LoginScreen() {
+  const [isAppleLoginAvailable, setIsAppleLoginAvailable] = useState(false);
+
   const {
     mutate: signInWithKakao,
     isError: isKakaoError,
@@ -30,12 +38,33 @@ export default function LoginScreen() {
     error: googleError,
   } = useSignInWithGoogleMutation();
 
+  const {
+    mutate: signInWithApple,
+    isError: isAppleError,
+    isPending: isApplePending,
+    error: appleError,
+  } = useSignInWithAppleMutation();
+
+  useEffect(() => {
+    // Apple 로그인 가능 여부 확인 (iOS에서만)
+    const checkAppleAuth = async () => {
+      const available = await isAppleAuthenticationAvailable();
+      setIsAppleLoginAvailable(available);
+    };
+
+    checkAppleAuth();
+  }, []);
+
   const handleKakaoLogin = async () => {
     signInWithKakao();
   };
 
   const handleGoogleLogin = async () => {
     signInWithGoogle();
+  };
+
+  const handleAppleLogin = async () => {
+    signInWithApple();
   };
 
   const openLink = (url: string) => {
@@ -71,9 +100,23 @@ export default function LoginScreen() {
             </StyledText>
           </TouchableOpacity>
 
-          {(isKakaoError || isGoogleError) && (
+          {/* iOS에서만 Apple 로그인 버튼 표시 */}
+          {isAppleLoginAvailable && (
+            <TouchableOpacity
+              style={styles.appleButton}
+              onPress={handleAppleLogin}
+              disabled={isApplePending}>
+              <AppleIcon width={20} height={20} style={styles.appleIcon} />
+              <StyledText variant="base-normal" colorKey="white">
+                {isApplePending ? '로그인 중...' : 'Apple로 시작하기'}
+              </StyledText>
+            </TouchableOpacity>
+          )}
+
+          {(isKakaoError || isGoogleError || isAppleError) && (
             <StyledText colorKey="red-500" variant="sm-normal">
-              로그인 중 오류가 발생했습니다: {kakaoError?.message || googleError?.message}
+              로그인 중 오류가 발생했습니다:{' '}
+              {kakaoError?.message || googleError?.message || appleError?.message}
             </StyledText>
           )}
           <StyledText variant="xs-normal" colorKey="grey-02" style={styles.termsInfoText}>
@@ -142,7 +185,7 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing['2'],
   },
   googleButton: {
-    marginBottom: theme.spacing['10'],
+    marginBottom: theme.spacing['3'],
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
@@ -155,6 +198,20 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing['3'],
   },
   googleIcon: {
+    marginRight: theme.spacing['2'],
+  },
+  appleButton: {
+    marginBottom: theme.spacing['10'],
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.spacing['2'],
+    backgroundColor: '#000000',
+    paddingHorizontal: theme.spacing['5'],
+    paddingVertical: theme.spacing['3'],
+  },
+  appleIcon: {
     marginRight: theme.spacing['2'],
   },
   termsInfoText: {

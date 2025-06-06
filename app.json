@@ -43,7 +43,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.busanccc.alwayswalkwithyou",
+      "bundleIdentifier": "com.cccbusan.alwayswalkwithyou",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
@@ -58,6 +58,9 @@
             "CFBundleURLSchemes": ["alwayswalkwithyouauth"]
           }
         ]
+      },
+      "entitlements": {
+        "com.apple.developer.applesignin": ["Default"]
       }
     },
     "android": {
@@ -65,7 +68,7 @@
         "foregroundImage": "./src/assets/images/logo-white.png",
         "backgroundColor": "#2584F0"
       },
-      "package": "com.busanccc.alwayswalkwithyou",
+      "package": "com.cccbusan.alwayswalkwithyou",
       "statusBar": {
         "backgroundColor": "#ffffff"
       },

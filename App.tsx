@@ -14,10 +14,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
-import { initializeGoogleSignIn } from '@/apis/authApi';
+import { initializeAuth, initializeGoogleSignIn } from '@/utils/auth';
 import { getGroupByInviteToken, joinGroupByInvite } from '@/apis/groupApi';
 import { NavigationService } from '@/utils/NavigationService';
 import AlertModal from '@/components/common/AlertModal';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { supabase } from '@/utils/supabaseClient';
 
 SplashScreen.preventAutoHideAsync();
@@ -36,6 +37,7 @@ export default function App() {
   const { session, isInitialized, initializeAuth } = useAuthStore();
   const { fontsLoaded, fontError } = useAppFonts();
   const hiddenRef = useRef(false); // splash screen 숨김 중복 방지
+  const [appIsReady, setAppIsReady] = useState(false);
 
   // AlertModal 상태 관리
   const [alertModal, setAlertModal] = useState<{
@@ -241,6 +243,7 @@ export default function App() {
 
       try {
         hiddenRef.current = true; // 중복 실행 방지
+        setAppIsReady(true); // 앱 준비 완료 설정
         await SplashScreen.hideAsync();
       } catch (error) {
         console.error('[App.tsx] Error hiding splash screen:', error);
@@ -257,15 +260,20 @@ export default function App() {
     hideSplashScreen();
   }, [fontsLoaded, fontError, isInitialized]);
 
-  // 폰트 로딩 에러 처리
+  // 폰트 로딩 에러 처리 (iOS에서는 토스트 표시 안함)
   useEffect(() => {
     if (fontError) {
-      Toast.show({
-        type: 'error',
-        text1: '폰트 로딩 실패',
-        text2: '일부 텍스트가 올바르게 표시되지 않을 수 있습니다.',
-        visibilityTime: 3000,
-      });
+      console.warn('[App.tsx] Font loading error detected:', fontError);
+
+      // iOS에서는 경고만 로그에 남기고 토스트는 표시하지 않음
+      if (Platform.OS !== 'ios') {
+        Toast.show({
+          type: 'warn',
+          text1: '폰트 로딩 실패',
+          text2: '시스템 기본 폰트를 사용합니다.',
+          visibilityTime: 2000,
+        });
+      }
     }
   }, [fontError]);
 
@@ -275,7 +283,8 @@ export default function App() {
       if (!hiddenRef.current) {
         try {
           hiddenRef.current = true;
-          await SplashScreen.hideAsync();
+          setAppIsReady(true); // 앱 준비 완료 설정
+          SplashScreen.hide();
           Toast.show({
             type: 'info',
             text1: '앱 로딩 완료',
@@ -299,15 +308,14 @@ export default function App() {
 
   const onLayoutRootView = useCallback(() => {
     // 레이아웃 완료 시 필요한 경우 추가 처리
-  }, [fontsLoaded, fontError, isInitialized]);
+  }, []);
 
-  if (!fontsLoaded && !fontError) {
+  if (!appIsReady) {
     return null;
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar backgroundColor="#ffffff" translucent={false} />
+    <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
           <BottomSheetModalProvider>
@@ -328,7 +336,7 @@ export default function App() {
       />
 
       <Toast />
-    </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 
