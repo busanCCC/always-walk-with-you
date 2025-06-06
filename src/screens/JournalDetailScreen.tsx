@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     fontSize: fontStyles['base-normal'].fontSize,
   },
   headerButton: {
-    padding: spacing[2],
+    paddingVertical: spacing[2],
   },
   navigationBar: {
     flexDirection: 'row',
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing[4],
   },
   journalContentText: {
-    ...fontStyles['base-normal'],
+    ...fontStyles['lg-normal'],
     color: colors['dark-grey-02'],
     paddingHorizontal: spacing[4],
     paddingTop: spacing[4],

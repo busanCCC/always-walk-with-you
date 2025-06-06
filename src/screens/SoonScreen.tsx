@@ -13,7 +13,7 @@ import { useUserGroups } from '@/queries/groupQueries';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GroupWithMembershipDetails, UserGroup } from '@/types/group';
+import { UserGroup } from '@/types/group';
 import AddGroupModal from '@/components/common/AddGroupModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { MainTabParamList, RootStackParamList } from '@/navigation/types';
@@ -89,14 +89,7 @@ const SoonScreen: React.FC = () => {
     <>
       <ScrollView
         style={styles.container}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.primary.DEFAULT}
-            colors={[theme.colors.primary.DEFAULT]}
-          />
-        }>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <Text style={styles.title}>나의 순</Text>
 
         {groups && groups.length > 0 ? (

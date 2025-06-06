@@ -26,13 +26,13 @@ export const AddGroupButton: React.FC<HeaderButtonProps> = ({ onPress }) => {
       onPress={handlePress}
       style={styles.headerButton}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-      <PlusIcon width={18} height={18} />
+      <PlusIcon width={16} height={16} />
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   headerButton: {
-    paddingHorizontal: theme.spacing[4],
+    paddingVertical: theme.spacing[2],
   },
 });

@@ -28,7 +28,7 @@
       [
         "@react-native-google-signin/google-signin",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.773201720169-f2vce137l1b6mu6cugi0isfa45184db4"
+          "iosUrlScheme": "com.googleusercontent.apps.363398054005-ehj5ic5g55jvk038ltqo65crooto3u5d"
         }
       ]
     ],
@@ -43,9 +43,21 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.busancc.alwayswalkwithyou",
+      "bundleIdentifier": "com.busanccc.alwayswalkwithyou",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "google-oauth",
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.363398054005-ehj5ic5g55jvk038ltqo65crooto3u5d"
+            ]
+          },
+          {
+            "CFBundleURLName": "custom-auth",
+            "CFBundleURLSchemes": ["alwayswalkwithyouauth"]
+          }
+        ]
       }
     },
     "android": {
@@ -53,7 +65,7 @@
         "foregroundImage": "./src/assets/images/logo-white.png",
         "backgroundColor": "#2584F0"
       },
-      "package": "com.busancc.alwayswalkwithyou",
+      "package": "com.busanccc.alwayswalkwithyou",
       "statusBar": {
         "backgroundColor": "#ffffff"
       },

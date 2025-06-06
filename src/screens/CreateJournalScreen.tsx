@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -10,9 +10,8 @@ import GroupShareBottomSheet, {
 } from '@/components/common/GroupShareBottomSheet';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
 import AlertModal from '@/components/common/AlertModal';
-import { colors, spacing, fontStyles } from '@/constants/theme';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Emotion, Question } from '@/types/journal';
+import { colors, spacing } from '@/constants/theme';
+import { Emotion } from '@/types/journal';
 import {
   useEmotionsQuery,
   useQuestionsQuery,
@@ -134,8 +133,10 @@ const CreateJournalScreen: React.FC = () => {
     }
   }, [mode, questions, answers.length]);
 
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     navigation.setOptions({
+      // iOS에서 스와이프 뒤로가기 제스처 비활성화
+      gestureEnabled: false,
       header: () => (
         <CustomHeader
           headerLeft={
@@ -155,7 +156,7 @@ const CreateJournalScreen: React.FC = () => {
         />
       ),
     });
-  }, [navigation, content, answers, mode]);
+  }, [navigation]);
 
   const handleExitConfirm = () => {
     setShowExitModal(false);
@@ -335,7 +336,7 @@ const CreateJournalScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   headerButton: {
-    padding: spacing[2],
+    paddingVertical: spacing[2],
   },
 });
 

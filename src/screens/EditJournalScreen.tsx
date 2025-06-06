@@ -119,6 +119,8 @@ const EditJournalScreen = () => {
   // 뒤로가기 핸들러
   useLayoutEffect(() => {
     navigation.setOptions({
+      // iOS에서 스와이프 뒤로가기 제스처 비활성화
+      gestureEnabled: false,
       header: () => (
         <CustomHeader
           headerLeft={
@@ -345,7 +347,7 @@ const styles = StyleSheet.create({
     fontSize: fontStyles['base-normal'].fontSize,
   },
   headerButton: {
-    padding: spacing[2],
+    paddingVertical: spacing[2],
   },
   modeText: {
     ...fontStyles['sm-normal'],

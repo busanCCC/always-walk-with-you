@@ -1,18 +1,11 @@
 import { supabase } from '../utils/supabaseClient';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri, AuthSessionRedirectUriOptions } from 'expo-auth-session';
 import { Session, User } from '@supabase/supabase-js';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Platform } from 'react-native';
 
-// iOS 시뮬레이터에서 안정적인 OAuth를 위한 리다이렉트 URI 설정
-const redirectUriOptions: AuthSessionRedirectUriOptions & { useProxy?: boolean } = {
-  // iOS 시뮬레이터에서는 useProxy를 false로 설정하여 네트워크 연결 문제 해결
-  useProxy: Platform.OS === 'ios' ? false : true,
-  // 커스텀 스킴 사용
-  scheme: 'alwayswalkwithyouauth',
-};
-const redirectUri = makeRedirectUri(redirectUriOptions);
+// 앱의 커스텀 스킴으로 직접 리다이렉트 (Expo 개발 서버 우회)
+const redirectUri = 'alwayswalkwithyouauth://auth/callback';
 
 console.log('OAuth Redirect URI:', redirectUri);
 
@@ -60,7 +53,7 @@ export const signInWithKakao = async (): Promise<KakaoLoginResult> => {
     const result = await WebBrowser.openAuthSessionAsync(oauthData.url, redirectUri, {
       // iOS에서 시스템 브라우저 사용 대신 in-app 브라우저 사용
       preferEphemeralSession: false,
-      // iOS 시뮬레이터에서 더 나은 호환성을 위해
+      // iOS에서 더 나은 호환성을 위해
       showInRecents: false,
     });
 
@@ -117,8 +110,8 @@ export const signInWithKakao = async (): Promise<KakaoLoginResult> => {
 export const initializeGoogleSignIn = async () => {
   try {
     await GoogleSignin.configure({
-      webClientId: '773201720169-mklk0et95leh8p423b4mcjbrmt9gem3g.apps.googleusercontent.com', // Google Cloud Console에서 생성한 웹 클라이언트 ID
-      iosClientId: '773201720169-f2vce137l1b6mu6cugi0isfa45184db4.apps.googleusercontent.com',
+      webClientId: '363398054005-mrupertl7685gk0boohs3d89svecg95m.apps.googleusercontent.com', // Google Cloud Console에서 생성한 웹 클라이언트 ID
+      iosClientId: '363398054005-ehj5ic5g55jvk038ltqo65crooto3u5d.apps.googleusercontent.com',
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });

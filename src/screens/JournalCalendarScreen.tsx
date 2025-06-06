@@ -348,14 +348,7 @@ const JournalCalendarScreen = () => {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary.DEFAULT}
-            colors={[colors.primary.DEFAULT]}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}>
         <Calendar
           current={currentDisplayMonth.toISOString().split('T')[0]}
@@ -368,7 +361,6 @@ const JournalCalendarScreen = () => {
           hideExtraDays={true}
           renderArrow={renderArrow}
           dayComponent={dayComponent}
-          enableSwipeMonths={true}
           renderHeader={renderCustomHeader}
           theme={{
             backgroundColor: colors.white,

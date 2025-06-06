@@ -185,8 +185,6 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
                 multiline
                 textAlignVertical="top"
                 editable={!disabled}
-                returnKeyType="done"
-                blurOnSubmit={true}
               />
             </View>
           </View>
@@ -323,10 +321,8 @@ const styles = StyleSheet.create({
   },
   freeWriteInput: {
     flex: 1,
-    ...fontStyles['base-normal'],
-    fontSize: 14,
+    ...fontStyles['lg-normal'],
     color: colors['dark-grey-02'],
-    lineHeight: 21,
     textAlignVertical: 'top',
   },
   // 질문 기반 모드 스타일
@@ -335,7 +331,7 @@ const styles = StyleSheet.create({
   },
   scrollContentContainer: {
     padding: spacing[4],
-    paddingBottom: 80, // footer 높이 + 여백
+    paddingBottom: 180, // footer 높이 + 여백
   },
   questionContainer: {
     marginBottom: spacing[6],
@@ -376,11 +372,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing[4],
-    paddingBottom: spacing[3],
+    paddingBottom: spacing[2],
     paddingTop: spacing[3],
   },
   leftFooter: {
     flex: 1,
+    maxWidth: '50%',
   },
   shareButton: {
     flexDirection: 'row',

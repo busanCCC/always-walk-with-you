@@ -34,10 +34,9 @@ import AlertModal from '@/components/common/AlertModal';
 import GroupJournalCard from '@/components/journal/GroupJournalCard';
 import { getMemberDisplayName } from '@/utils/roleMapper';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import * as Clipboard from 'expo-clipboard';
-import Toast from 'react-native-toast-message';
 import { createGroupInvite } from '@/apis/groupApi';
 import { useAuthStore } from '@/store/authStore';
+import CustomHeader from '@/components/common/CustomHeader';
 
 type GroupDetailScreenRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 const { width } = Dimensions.get('window');
@@ -113,30 +112,32 @@ const GroupDetailScreen = () => {
   // 페이지 진입 시 헤더 설정 - 즉시 전달받은 이름으로 설정하되, API 로드 후 업데이트
   useEffect(() => {
     navigation.setOptions({
-      headerTitle: groupDetails?.name || groupName, // API 데이터 우선, 없으면 파라미터 사용
-      headerTitleAlign: 'center', // 중앙 정렬
-      headerShadowVisible: false,
-
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButtonContainer}>
-          <Ionicons name="chevron-back" size={20} color={colors['dark-grey-02']} />
-        </TouchableOpacity>
-      ),
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={drawerVisible ? closeDrawer : openDrawer}
-          style={styles.drawerButton}
-          disabled={isLoading}>
-          <Ionicons
-            name={drawerVisible ? 'close' : 'menu'}
-            // size={spacing[6]}
-            size={20}
-            color={isLoading ? colors['grey-02'] : colors['grey-01']}
-          />
-        </TouchableOpacity>
+      header: () => (
+        <CustomHeader
+          title={groupDetails?.name || groupName}
+          headerLeft={
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.headerButtonContainer}>
+              <Ionicons name="chevron-back" size={20} color={colors['dark-grey-02']} />
+            </TouchableOpacity>
+          }
+          headerRight={
+            <TouchableOpacity
+              onPress={drawerVisible ? closeDrawer : openDrawer}
+              disabled={isLoading}>
+              <Ionicons
+                name={drawerVisible ? 'close' : 'menu'}
+                size={20}
+                color={colors['dark-grey-02']}
+              />
+            </TouchableOpacity>
+          }
+          noBorder
+        />
       ),
     });
-  }, [navigation, groupName, groupDetails, drawerVisible, isLoading]); // groupDetails 의존성 추가
+  }, [navigation]);
 
   // Drawer 애니메이션 효과
   useEffect(() => {
@@ -862,7 +863,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors['light-grey-02'],
   },
   drawerButtonText: {
-    ...fontStyles['base-normal'],
+    ...fontStyles['sm-normal'],
     color: colors['dark-grey-01'],
     marginLeft: spacing[2],
   },

@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     color: colors['grey-03'],
   },
   headerButtonContainer: {
-    paddingHorizontal: spacing['2'],
+    paddingVertical: spacing['2'],
   },
 });
 

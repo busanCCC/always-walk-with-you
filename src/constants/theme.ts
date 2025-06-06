@@ -87,6 +87,12 @@ export const fontStyles = {
     letterSpacing: -0.011 * remToPx('0.75rem'), // -0.132
   },
   // Regular 시리즈
+  'lg-normal': {
+    fontFamily: fonts.regular,
+    fontSize: remToPx('1.125rem'), // 18
+    lineHeight: remToPx('1.125rem') * 1.5, // 27
+    letterSpacing: 0,
+  },
   'base-normal': {
     fontFamily: fonts.regular,
     fontSize: remToPx('1rem'), // 16

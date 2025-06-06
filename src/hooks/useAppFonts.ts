@@ -1,4 +1,5 @@
 import { useFonts } from 'expo-font';
+import { Platform } from 'react-native';
 
 export const useAppFonts = () => {
   const [fontsLoaded, fontError] = useFonts({
@@ -13,5 +14,13 @@ export const useAppFonts = () => {
     'Pretendard-Black': require('@/assets/fonts/Pretendard-Black.otf'),
   });
 
-  return { fontsLoaded, fontError };
+  // NOTE: 임시로 iOS에서는 폰트 에러를 무시하고 시스템 폰트 사용
+  const isIOSFontError = Platform.OS === 'ios' && fontError;
+  const safelyLoaded = fontsLoaded || isIOSFontError;
+  const safeFontError = Platform.OS === 'ios' ? null : fontError;
+
+  return {
+    fontsLoaded: safelyLoaded,
+    fontError: safeFontError,
+  };
 };
