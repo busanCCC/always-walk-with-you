@@ -2,21 +2,6 @@ import { useAuthStore } from '@/store/authStore';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 /**
- * 앱 시작 시 인증 상태 초기화
- * Timeout과 에러 처리 강화
- */
-export const initializeAuth = async (): Promise<void> => {
-  const timeoutMs = 10000; // 10초 timeout
-
-  return Promise.race([
-    useAuthStore.getState().initializeAuth(),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Auth initialization timeout')), timeoutMs)
-    ),
-  ]);
-};
-
-/**
  * Google 로그인 초기화
  * Timeout과 에러 처리 강화
  */
@@ -26,7 +11,7 @@ export const initializeGoogleSignIn = async (): Promise<void> => {
   const initPromise = async () => {
     try {
       GoogleSignin.configure({
-        webClientId: '363398054005-ehj5ic5g55jvk038ltqo65crooto3u5d.apps.googleusercontent.com',
+        webClientId: '363398054005-mrupertl7685gk0boohs3d89svecg95m.apps.googleusercontent.com',
         iosClientId: '363398054005-ehj5ic5g55jvk038ltqo65crooto3u5d.apps.googleusercontent.com',
         offlineAccess: true,
         forceCodeForRefreshToken: true,

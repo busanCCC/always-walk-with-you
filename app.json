@@ -6,7 +6,7 @@
     "version": "1.0.0",
     "entryPoint": "./src/app/App.tsx",
     "web": {
-      "favicon": "./src/assets/images/logo.png"
+      "favicon": "./src/assets/images/icon.png"
     },
     "experiments": {
       "tsconfigPaths": true
@@ -38,7 +38,7 @@
       "imageResizeMode": "contain"
     },
     "orientation": "portrait",
-    "icon": "./src/assets/images/logo.png",
+    "icon": "./src/assets/images/icon.png",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -65,10 +65,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/images/logo-white.png",
+        "foregroundImage": "./src/assets/images/icon.png",
         "backgroundColor": "#2584F0"
       },
       "package": "com.cccbusan.alwayswalkwithyou",
+      "versionCode": 4,
       "statusBar": {
         "backgroundColor": "#ffffff"
       },

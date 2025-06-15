@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   },
   freeWriteInput: {
     flex: 1,
-    ...fontStyles['lg-normal'],
+    ...fontStyles['base-normal'],
     color: colors['dark-grey-02'],
     textAlignVertical: 'top',
   },

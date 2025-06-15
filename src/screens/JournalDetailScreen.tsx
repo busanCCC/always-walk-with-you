@@ -59,14 +59,14 @@ const JournalDetailScreen = () => {
         <CustomHeader
           headerLeft={
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
-              <Ionicons name="chevron-back" size={20} color={colors['dark-grey-02']} />
+              <Ionicons name="chevron-back" size={24} color={colors['dark-grey-02']} />
             </TouchableOpacity>
           }
           headerRight={
             <TouchableOpacity
               onPress={() => setActionSheetVisible(true)}
               style={styles.headerButton}>
-              <Ionicons name="ellipsis-vertical" size={20} color={colors['dark-grey-02']} />
+              <Ionicons name="ellipsis-vertical" size={24} color={colors['dark-grey-02']} />
             </TouchableOpacity>
           }
           noBorder
@@ -302,7 +302,7 @@ const JournalDetailScreen = () => {
       {/* Shared Groups View */}
       <SharedGroupsViewBottomSheet
         ref={sharedGroupsBottomSheetRef}
-        sharedGroupIds={journal.shared_groups || []}
+        sharedGroupIds={journal.shared_groups?.map((group) => group.id) || []}
       />
     </View>
   );

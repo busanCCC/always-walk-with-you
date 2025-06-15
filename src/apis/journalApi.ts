@@ -74,80 +74,57 @@ export const fetchJournalById = async (journalId: string): Promise<Journal> => {
   }
 
   try {
+    // 테이블 직접 조회가 아닌 RPC 함수 호출로 변경
     const { data, error } = await supabase
-      .from('journals')
-      .select(
-        `
-        *,
-        emotions (*),
-        journal_entries (*),
-        users (id, name, email, profile_img, role)
-      `
-      )
-      .eq('id', journalId)
-      .order('entry_order', { foreignTable: 'journal_entries', ascending: true })
+      .rpc('get_journal_details', { journal_id_param: journalId })
       .single();
 
     if (error) {
-      console.error(`Error fetching journal by ID (${journalId}):`, error);
+      console.error(`Error fetching journal via RPC (${journalId}):`, error);
       throw error;
     }
 
     if (!data) {
-      // .single() 호출 시 데이터가 없으면 error 객체가 PGRST116 코드를 포함하여 반환되지만,
-      // 명시적으로 data가 null인 경우도 처리합니다.
       const errorMessage = `Journal not found with ID: ${journalId}`;
       console.error(errorMessage);
       throw new Error(errorMessage);
     }
 
-    const rawData = data as RawJournalData & { users: any };
+    const rawData = data as any; // RPC 결과는 any로 캐스팅 후 수동 매핑
 
-    // 만약 일기가 그룹에 공유되었다면 작성자의 그룹 권한 정보 조회
+    // isAuthorAdmin 계산 로직 (필요 시 유지 또는 수정)
     let isAuthorAdmin = false;
-    if (rawData.shared_groups && rawData.shared_groups.length > 0 && rawData.users) {
-      // 첫 번째 공유 그룹에서의 권한을 확인 (여러 그룹일 경우 첫 번째 그룹 기준)
+    if (rawData.author && rawData.shared_groups && rawData.shared_groups.length > 0) {
+      // 첫 번째 공유 그룹에서의 권한을 확인
+      const firstGroupId = rawData.shared_groups[0].id;
       const { data: membershipData } = await supabase
         .from('group_memberships')
         .select('is_admin')
-        .eq('group_id', rawData.shared_groups[0])
-        .eq('user_id', rawData.user_id)
+        .eq('group_id', firstGroupId)
+        .eq('user_id', rawData.author.id)
         .single();
-
       isAuthorAdmin = membershipData?.is_admin || false;
     }
 
     const journalWithDetails: Journal = {
       ...rawData,
-      emotion: Array.isArray(rawData.emotions)
-        ? rawData.emotions[0] || null
-        : rawData.emotions || null,
+      emotion: rawData.emotion || null,
       journal_entries: rawData.journal_entries || [],
-      user: rawData.users
+      user: rawData.author
         ? {
-            id: rawData.users.id,
-            name: rawData.users.name,
-            email: rawData.users.email,
-            profile_img: rawData.users.profile_img,
+            ...rawData.author,
             is_admin: isAuthorAdmin,
-            role: rawData.users.role || 'member',
           }
         : null,
+      shared_groups: rawData.shared_groups || [],
     };
 
     return journalWithDetails;
   } catch (err) {
-    // 이미 위에서 console.error를 호출했으므로, 여기서는 일반적인 에러를 처리합니다.
-    // console.error(`An unexpected error occurred while fetching journal detail for ID ${journalId}:`, err); // 중복 로그 피하기
     if (err instanceof Error) {
-      // 이미 위에서 Error 객체를 throw 했으므로 그대로 다시 throw 하거나, 추가 가공
-      // throw err;
-      // 만약 위에서 throw한 에러 외의 다른 에러(네트워크 등)를 잡고 싶다면 별도 처리
+      throw new Error(`Failed to fetch journal detail for ID ${journalId}. Reason: ${err.message}`);
     }
-    // 최종적으로 어떤 에러든 잡아서 throw, 혹은 UI에서 처리할 수 있는 형태로 반환
-    throw new Error(
-      `Failed to fetch journal detail for ID ${journalId}. Reason: ${err instanceof Error ? err.message : 'Unknown error'}`
-    );
+    throw new Error(`An unknown error occurred while fetching journal detail for ID ${journalId}.`);
   }
 };
 

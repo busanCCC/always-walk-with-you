@@ -37,6 +37,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { createGroupInvite } from '@/apis/groupApi';
 import { useAuthStore } from '@/store/authStore';
 import CustomHeader from '@/components/common/CustomHeader';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 type GroupDetailScreenRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 const { width } = Dimensions.get('window');
@@ -109,7 +110,7 @@ const GroupDetailScreen = () => {
     navigation.navigate('SelectJournalMode', {});
   };
 
-  // 페이지 진입 시 헤더 설정 - 즉시 전달받은 이름으로 설정하되, API 로드 후 업데이트
+  // 페이지 진입 시 헤더 설정 - drawerVisible 상태가 바뀔 때마다 헤더를 다시 그리도록 수정
   useEffect(() => {
     navigation.setOptions({
       header: () => (
@@ -119,7 +120,7 @@ const GroupDetailScreen = () => {
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={styles.headerButtonContainer}>
-              <Ionicons name="chevron-back" size={20} color={colors['dark-grey-02']} />
+              <Ionicons name="chevron-back" size={24} color={colors['dark-grey-02']} />
             </TouchableOpacity>
           }
           headerRight={
@@ -128,7 +129,7 @@ const GroupDetailScreen = () => {
               disabled={isLoading}>
               <Ionicons
                 name={drawerVisible ? 'close' : 'menu'}
-                size={20}
+                size={24}
                 color={colors['dark-grey-02']}
               />
             </TouchableOpacity>
@@ -137,7 +138,7 @@ const GroupDetailScreen = () => {
         />
       ),
     });
-  }, [navigation]);
+  }, [navigation, groupDetails, groupName, drawerVisible, isLoading]);
 
   // Drawer 애니메이션 효과
   useEffect(() => {
@@ -342,377 +343,393 @@ const GroupDetailScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      {journalsLoading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
-        </View>
-      ) : journalsError ? (
-        <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>일기를 불러오는 데 실패했습니다.</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => refetchJournals()}>
-            <Text style={styles.retryButtonText}>다시 시도</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={groupJournals}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item: journal }) => (
-            <GroupJournalCard journal={journal} onPress={() => handleJournalPress(journal)} />
-          )}
-          ListEmptyComponent={() => (
-            <View style={styles.centerContainer}>
-              <Text style={styles.placeholderText}>아직 공유된 영성일기가 없어요</Text>
-            </View>
-          )}
-          contentContainerStyle={groupJournals?.length === 0 ? styles.centerContainer : undefined}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      {/* 플로팅 액션 버튼 */}
-      <TouchableOpacity style={styles.floatingButton} onPress={handleCreateJournal}>
-        <MaterialIcons name="create" size={24} color={colors.primary.DEFAULT} />
-      </TouchableOpacity>
-
-      {/* Drawer 오버레이 */}
-      <Modal
-        visible={drawerVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={closeDrawer}>
-        <View style={styles.drawerOverlay}>
-          <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={closeDrawer} />
-
-          <Animated.View
-            style={[
-              styles.drawer,
-              {
-                transform: [{ translateX: drawerTranslateX }],
-              },
-            ]}>
-            <ScrollView>
-              <View style={styles.drawerHeader}>
-                <Text style={styles.drawerTitle}>{groupDetails.name}</Text>
-                <TouchableOpacity style={styles.closeButton} onPress={closeDrawer}>
-                  <Ionicons name="close" size={spacing[6]} color={colors['grey-01']} />
-                </TouchableOpacity>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {journalsLoading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
+          </View>
+        ) : journalsError ? (
+          <View style={styles.centerContainer}>
+            <Text style={styles.errorText}>일기를 불러오는 데 실패했습니다.</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetchJournals()}>
+              <Text style={styles.retryButtonText}>다시 시도</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={groupJournals}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item: journal }) => (
+              <GroupJournalCard journal={journal} onPress={() => handleJournalPress(journal)} />
+            )}
+            ListEmptyComponent={() => (
+              <View style={styles.centerContainer}>
+                <Text style={styles.placeholderText}>아직 공유된 영성일기가 없어요</Text>
               </View>
+            )}
+            contentContainerStyle={groupJournals?.length === 0 ? styles.centerContainer : undefined}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
 
-              <View style={styles.drawerContent}>
-                <Text style={styles.sectionTitle}>설명</Text>
-                <Text style={styles.description}>
-                  {groupDetails.description || '설명이 없습니다.'}
-                </Text>
+        {/* 플로팅 액션 버튼 */}
+        <TouchableOpacity style={styles.floatingButton} onPress={handleCreateJournal}>
+          <MaterialIcons name="create" size={24} color={colors.primary.DEFAULT} />
+        </TouchableOpacity>
 
-                {/* 멤버 목록 섹션 */}
-                <View style={styles.memberSection}>
-                  <Text style={styles.sectionTitle}>멤버 ({groupDetails.member_count || 0})</Text>
+        {/* Drawer 오버레이 */}
+        <Modal
+          visible={drawerVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={closeDrawer}>
+          <View style={styles.drawerOverlay}>
+            <TouchableOpacity
+              style={styles.drawerBackdrop}
+              activeOpacity={1}
+              onPress={closeDrawer}
+            />
 
-                  {membersLoading ? (
-                    <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
-                  ) : membersError ? (
-                    <View style={styles.memberErrorContainer}>
-                      <Text style={styles.memberErrorText}>멤버 정보를 불러올 수 없습니다.</Text>
-                      <TouchableOpacity onPress={() => refetchMembers()}>
-                        <Text style={styles.retryText}>다시 시도</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <>
-                      {members &&
-                        members.map((member) => (
-                          <View key={member.id} style={styles.memberItem}>
-                            <View style={styles.memberAvatar}>
-                              {member.users.profile_img ? (
-                                <Text>A</Text> // TODO: 실제 아바타 이미지 사용
-                              ) : (
-                                <Text style={styles.memberInitial}>
-                                  {(member.users.name || member.users.email || 'U')
-                                    .charAt(0)
-                                    .toUpperCase()}
+            <Animated.View
+              style={[
+                styles.drawer,
+                {
+                  transform: [{ translateX: drawerTranslateX }],
+                },
+              ]}>
+              <ScrollView>
+                <View style={styles.drawerHeader}>
+                  <Text style={styles.drawerTitle}>{groupDetails.name}</Text>
+                  <TouchableOpacity style={styles.closeButton} onPress={closeDrawer}>
+                    <Ionicons name="close" size={spacing[6]} color={colors['grey-01']} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.drawerContent}>
+                  <Text style={styles.sectionTitle}>설명</Text>
+                  <Text style={styles.description}>
+                    {groupDetails.description || '설명이 없습니다.'}
+                  </Text>
+
+                  {/* 멤버 목록 섹션 */}
+                  <View style={styles.memberSection}>
+                    <Text style={styles.sectionTitle}>멤버 ({groupDetails.member_count || 0})</Text>
+
+                    {membersLoading ? (
+                      <ActivityIndicator size="small" color={colors.primary.DEFAULT} />
+                    ) : membersError ? (
+                      <View style={styles.memberErrorContainer}>
+                        <Text style={styles.memberErrorText}>멤버 정보를 불러올 수 없습니다.</Text>
+                        <TouchableOpacity onPress={() => refetchMembers()}>
+                          <Text style={styles.retryText}>다시 시도</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <>
+                        {members &&
+                          members.map((member) => (
+                            <View key={member.id} style={styles.memberItem}>
+                              <View style={styles.memberAvatar}>
+                                {member.users.profile_img ? (
+                                  <Text>A</Text> // TODO: 실제 아바타 이미지 사용
+                                ) : (
+                                  <Text style={styles.memberInitial}>
+                                    {(member.users.name || member.users.email || 'U')
+                                      .charAt(0)
+                                      .toUpperCase()}
+                                  </Text>
+                                )}
+                              </View>
+                              <View style={styles.memberInfo}>
+                                <Text style={styles.memberName}>
+                                  {getMemberDisplayName(member)}
                                 </Text>
+                              </View>
+                              {/* 관리자이고 자기 자신이 아닌 경우에만 삭제 버튼 표시 */}
+                              {isAdmin && member.user_id !== currentUserId && (
+                                <TouchableOpacity
+                                  style={styles.removeMemberButton}
+                                  onPress={() =>
+                                    showRemoveMemberModal(
+                                      member.user_id,
+                                      member.users.name || member.users.email || '알 수 없는 사용자'
+                                    )
+                                  }>
+                                  <Ionicons name="close" size={16} color={colors['grey-01']} />
+                                </TouchableOpacity>
                               )}
                             </View>
-                            <View style={styles.memberInfo}>
-                              <Text style={styles.memberName}>{getMemberDisplayName(member)}</Text>
-                            </View>
-                            {/* 관리자이고 자기 자신이 아닌 경우에만 삭제 버튼 표시 */}
-                            {isAdmin && member.user_id !== currentUserId && (
-                              <TouchableOpacity
-                                style={styles.removeMemberButton}
-                                onPress={() =>
-                                  showRemoveMemberModal(
-                                    member.user_id,
-                                    member.users.name || member.users.email || '알 수 없는 사용자'
-                                  )
-                                }>
-                                <Ionicons name="close" size={16} color={colors['grey-01']} />
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        ))}
-                    </>
-                  )}
+                          ))}
+                      </>
+                    )}
+                  </View>
                 </View>
-              </View>
 
-              {isAdmin ? (
-                <View style={styles.buttonSection}>
-                  <TouchableOpacity style={styles.drawerButton} onPress={showInviteModal}>
-                    <Ionicons name="person-add-outline" size={20} color={colors['dark-grey-01']} />
-                    <Text style={styles.drawerButtonText}>멤버 초대</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.drawerButton} onPress={showEditModal}>
-                    <Ionicons name="create-outline" size={20} color={colors['dark-grey-01']} />
-                    <Text style={styles.drawerButtonText}>순 정보 수정</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.drawerButton} onPress={showDeleteModal}>
-                    <Ionicons name="trash-outline" size={20} color={colors.destructive} />
-                    <Text style={[styles.drawerButtonText, { color: colors.destructive }]}>
-                      순 삭제하기
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                {isAdmin ? (
+                  <View style={styles.buttonSection}>
+                    <TouchableOpacity style={styles.drawerButton} onPress={showInviteModal}>
+                      <Ionicons
+                        name="person-add-outline"
+                        size={20}
+                        color={colors['dark-grey-01']}
+                      />
+                      <Text style={styles.drawerButtonText}>멤버 초대</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.drawerButton} onPress={showEditModal}>
+                      <Ionicons name="create-outline" size={20} color={colors['dark-grey-01']} />
+                      <Text style={styles.drawerButtonText}>순 정보 수정</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.drawerButton} onPress={showDeleteModal}>
+                      <Ionicons name="trash-outline" size={20} color={colors.destructive} />
+                      <Text style={[styles.drawerButtonText, { color: colors.destructive }]}>
+                        순 삭제하기
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.buttonSection}>
+                    <TouchableOpacity style={styles.drawerButton} onPress={showLeaveModal}>
+                      <Ionicons name="exit-outline" size={20} color={colors.destructive} />
+                      <Text style={[styles.drawerButtonText, { color: colors.destructive }]}>
+                        순 나가기
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </ScrollView>
+            </Animated.View>
+          </View>
+        </Modal>
+
+        {/* 수정 모달 - GroupModal 컴포넌트 사용 */}
+        <GroupModal
+          visible={editModalVisible}
+          onClose={() => !updateGroupMutation.isPending && setEditModalVisible(false)}
+          title="순 정보 수정">
+          <Text style={styles.inputLabel}>순 이름</Text>
+          <TextInput
+            style={styles.textInput}
+            value={editGroupData.name}
+            onChangeText={(text) => setEditGroupData({ ...editGroupData, name: text })}
+            placeholder="순 이름"
+            editable={!updateGroupMutation.isPending}
+          />
+
+          <Text style={styles.inputLabel}>설명</Text>
+          <TextInput
+            style={[styles.textInput, styles.textAreaInput]}
+            value={editGroupData.description}
+            onChangeText={(text) => setEditGroupData({ ...editGroupData, description: text })}
+            placeholder="순에 대한 설명을 입력하세요"
+            multiline
+            numberOfLines={4}
+            editable={!updateGroupMutation.isPending}
+          />
+
+          <Text style={styles.inputLabel}>캠퍼스</Text>
+          <TextInput
+            style={styles.textInput}
+            value={editGroupData.campus}
+            onChangeText={(text) => setEditGroupData({ ...editGroupData, campus: text })}
+            placeholder="캠퍼스 (선택사항)"
+            editable={!updateGroupMutation.isPending}
+          />
+
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setEditModalVisible(false)}
+              disabled={updateGroupMutation.isPending}>
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  updateGroupMutation.isPending && styles.disabledButtonText,
+                ]}>
+                취소
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.saveButton]}
+              onPress={handleEditSubmit}
+              disabled={updateGroupMutation.isPending}>
+              {updateGroupMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.white} />
               ) : (
-                <View style={styles.buttonSection}>
-                  <TouchableOpacity style={styles.drawerButton} onPress={showLeaveModal}>
-                    <Ionicons name="exit-outline" size={20} color={colors.destructive} />
-                    <Text style={[styles.drawerButtonText, { color: colors.destructive }]}>
-                      순 나가기
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <Text style={styles.saveButtonText}>저장</Text>
               )}
-            </ScrollView>
-          </Animated.View>
-        </View>
-      </Modal>
+            </TouchableOpacity>
+          </View>
+        </GroupModal>
 
-      {/* 수정 모달 - GroupModal 컴포넌트 사용 */}
-      <GroupModal
-        visible={editModalVisible}
-        onClose={() => !updateGroupMutation.isPending && setEditModalVisible(false)}
-        title="순 정보 수정">
-        <Text style={styles.inputLabel}>순 이름</Text>
-        <TextInput
-          style={styles.textInput}
-          value={editGroupData.name}
-          onChangeText={(text) => setEditGroupData({ ...editGroupData, name: text })}
-          placeholder="순 이름"
-          editable={!updateGroupMutation.isPending}
+        {/* 삭제 확인 모달 - GroupModal 컴포넌트 사용 */}
+        <GroupModal
+          visible={deleteModalVisible}
+          onClose={() => !deleteGroupMutation.isPending && setDeleteModalVisible(false)}
+          title="순 삭제하기">
+          <Text style={styles.deleteModalText}>'{groupDetails?.name}' 순을 삭제하시겠습니까?</Text>
+          <Text style={styles.deleteWarningText}>
+            이 작업은 되돌릴 수 없으며, 모든 데이터가 영구적으로 삭제됩니다.
+          </Text>
+
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setDeleteModalVisible(false)}
+              disabled={deleteGroupMutation.isPending}>
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  deleteGroupMutation.isPending && styles.disabledButtonText,
+                ]}>
+                취소
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.deleteButton]}
+              onPress={handleDeleteConfirm}
+              disabled={deleteGroupMutation.isPending}>
+              {deleteGroupMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.deleteButtonText}>삭제</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </GroupModal>
+
+        {/* 초대 모달 - GroupModal 컴포넌트 사용 */}
+        <GroupModal
+          visible={inviteModalVisible}
+          onClose={() => !isCreatingInvite && setInviteModalVisible(false)}
+          title="멤버 초대하기">
+          <Text style={styles.inviteDescriptionText}>
+            초대 링크를 생성하여 새로운 순원을 초대할 수 있습니다.
+          </Text>
+          <Text style={styles.inviteWarningText}>
+            • 초대 링크는 24시간 후 자동으로 만료됩니다{'\n'}• 링크를 받은 사람은 자동으로 순에
+            가입됩니다{'\n'}• 링크 생성 후 바로 공유 창이 열립니다
+          </Text>
+
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setInviteModalVisible(false)}
+              disabled={isCreatingInvite}>
+              <Text
+                style={[styles.cancelButtonText, isCreatingInvite && styles.disabledButtonText]}>
+                취소
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.saveButton]}
+              onPress={handleCreateInvite}
+              disabled={isCreatingInvite}>
+              {isCreatingInvite ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.saveButtonText}>초대 링크 생성</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </GroupModal>
+
+        {/* 순 나가기 모달 - GroupModal 컴포넌트 사용 */}
+        <GroupModal
+          visible={leaveModalVisible}
+          onClose={() => !leaveGroupMutation.isPending && setLeaveModalVisible(false)}
+          title="순 나가기">
+          <Text style={styles.leaveModalText}>'{groupDetails?.name}' 순을 나가시겠습니까?</Text>
+          <Text style={styles.leaveWarningText}>
+            순을 나가면 해당 순의 영성일기에 접근할 수 없게 됩니다.{'\n'}
+            다시 참여하려면 새로운 초대 링크가 필요합니다.
+          </Text>
+
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setLeaveModalVisible(false)}
+              disabled={leaveGroupMutation.isPending}>
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  leaveGroupMutation.isPending && styles.disabledButtonText,
+                ]}>
+                취소
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.leaveButton]}
+              onPress={handleLeaveConfirm}
+              disabled={leaveGroupMutation.isPending}>
+              {leaveGroupMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.leaveButtonText}>나가기</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </GroupModal>
+
+        {/* 멤버 삭제 확인 모달 - GroupModal 컴포넌트 사용 */}
+        <GroupModal
+          visible={removeMemberModalVisible}
+          onClose={() => !removeMemberMutation.isPending && setRemoveMemberModalVisible(false)}
+          title="멤버 삭제">
+          <Text style={styles.deleteModalText}>
+            '{memberToRemove?.name}' 님을 순에서 삭제하시겠습니까?
+          </Text>
+          <Text style={styles.deleteWarningText}>
+            삭제된 멤버의 일기는 해당 순에서 더 이상 보이지 않으며,{'\n'}
+            다시 참여하려면 새로운 초대 링크가 필요합니다.
+          </Text>
+
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setRemoveMemberModalVisible(false)}
+              disabled={removeMemberMutation.isPending}>
+              <Text
+                style={[
+                  styles.cancelButtonText,
+                  removeMemberMutation.isPending && styles.disabledButtonText,
+                ]}>
+                취소
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.deleteButton]}
+              onPress={handleRemoveMemberConfirm}
+              disabled={removeMemberMutation.isPending}>
+              {removeMemberMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.deleteButtonText}>삭제</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </GroupModal>
+
+        {/* Alert Modal */}
+        <AlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          onClose={hideAlert}
         />
-
-        <Text style={styles.inputLabel}>설명</Text>
-        <TextInput
-          style={[styles.textInput, styles.textAreaInput]}
-          value={editGroupData.description}
-          onChangeText={(text) => setEditGroupData({ ...editGroupData, description: text })}
-          placeholder="순에 대한 설명을 입력하세요"
-          multiline
-          numberOfLines={4}
-          editable={!updateGroupMutation.isPending}
-        />
-
-        <Text style={styles.inputLabel}>캠퍼스</Text>
-        <TextInput
-          style={styles.textInput}
-          value={editGroupData.campus}
-          onChangeText={(text) => setEditGroupData({ ...editGroupData, campus: text })}
-          placeholder="캠퍼스 (선택사항)"
-          editable={!updateGroupMutation.isPending}
-        />
-
-        <View style={styles.modalButtonContainer}>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.cancelButton]}
-            onPress={() => setEditModalVisible(false)}
-            disabled={updateGroupMutation.isPending}>
-            <Text
-              style={[
-                styles.cancelButtonText,
-                updateGroupMutation.isPending && styles.disabledButtonText,
-              ]}>
-              취소
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.saveButton]}
-            onPress={handleEditSubmit}
-            disabled={updateGroupMutation.isPending}>
-            {updateGroupMutation.isPending ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Text style={styles.saveButtonText}>저장</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </GroupModal>
-
-      {/* 삭제 확인 모달 - GroupModal 컴포넌트 사용 */}
-      <GroupModal
-        visible={deleteModalVisible}
-        onClose={() => !deleteGroupMutation.isPending && setDeleteModalVisible(false)}
-        title="순 삭제하기">
-        <Text style={styles.deleteModalText}>'{groupDetails?.name}' 순을 삭제하시겠습니까?</Text>
-        <Text style={styles.deleteWarningText}>
-          이 작업은 되돌릴 수 없으며, 모든 데이터가 영구적으로 삭제됩니다.
-        </Text>
-
-        <View style={styles.modalButtonContainer}>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.cancelButton]}
-            onPress={() => setDeleteModalVisible(false)}
-            disabled={deleteGroupMutation.isPending}>
-            <Text
-              style={[
-                styles.cancelButtonText,
-                deleteGroupMutation.isPending && styles.disabledButtonText,
-              ]}>
-              취소
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.deleteButton]}
-            onPress={handleDeleteConfirm}
-            disabled={deleteGroupMutation.isPending}>
-            {deleteGroupMutation.isPending ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Text style={styles.deleteButtonText}>삭제</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </GroupModal>
-
-      {/* 초대 모달 - GroupModal 컴포넌트 사용 */}
-      <GroupModal
-        visible={inviteModalVisible}
-        onClose={() => !isCreatingInvite && setInviteModalVisible(false)}
-        title="멤버 초대하기">
-        <Text style={styles.inviteDescriptionText}>
-          초대 링크를 생성하여 새로운 순원을 초대할 수 있습니다.
-        </Text>
-        <Text style={styles.inviteWarningText}>
-          • 초대 링크는 24시간 후 자동으로 만료됩니다{'\n'}• 링크를 받은 사람은 자동으로 순에
-          가입됩니다{'\n'}• 링크 생성 후 바로 공유 창이 열립니다
-        </Text>
-
-        <View style={styles.modalButtonContainer}>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.cancelButton]}
-            onPress={() => setInviteModalVisible(false)}
-            disabled={isCreatingInvite}>
-            <Text style={[styles.cancelButtonText, isCreatingInvite && styles.disabledButtonText]}>
-              취소
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.saveButton]}
-            onPress={handleCreateInvite}
-            disabled={isCreatingInvite}>
-            {isCreatingInvite ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Text style={styles.saveButtonText}>초대 링크 생성</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </GroupModal>
-
-      {/* 순 나가기 모달 - GroupModal 컴포넌트 사용 */}
-      <GroupModal
-        visible={leaveModalVisible}
-        onClose={() => !leaveGroupMutation.isPending && setLeaveModalVisible(false)}
-        title="순 나가기">
-        <Text style={styles.leaveModalText}>'{groupDetails?.name}' 순을 나가시겠습니까?</Text>
-        <Text style={styles.leaveWarningText}>
-          순을 나가면 해당 순의 영성일기에 접근할 수 없게 됩니다.{'\n'}
-          다시 참여하려면 새로운 초대 링크가 필요합니다.
-        </Text>
-
-        <View style={styles.modalButtonContainer}>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.cancelButton]}
-            onPress={() => setLeaveModalVisible(false)}
-            disabled={leaveGroupMutation.isPending}>
-            <Text
-              style={[
-                styles.cancelButtonText,
-                leaveGroupMutation.isPending && styles.disabledButtonText,
-              ]}>
-              취소
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.leaveButton]}
-            onPress={handleLeaveConfirm}
-            disabled={leaveGroupMutation.isPending}>
-            {leaveGroupMutation.isPending ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Text style={styles.leaveButtonText}>나가기</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </GroupModal>
-
-      {/* 멤버 삭제 확인 모달 - GroupModal 컴포넌트 사용 */}
-      <GroupModal
-        visible={removeMemberModalVisible}
-        onClose={() => !removeMemberMutation.isPending && setRemoveMemberModalVisible(false)}
-        title="멤버 삭제">
-        <Text style={styles.deleteModalText}>
-          '{memberToRemove?.name}' 님을 순에서 삭제하시겠습니까?
-        </Text>
-        <Text style={styles.deleteWarningText}>
-          삭제된 멤버의 일기는 해당 순에서 더 이상 보이지 않으며,{'\n'}
-          다시 참여하려면 새로운 초대 링크가 필요합니다.
-        </Text>
-
-        <View style={styles.modalButtonContainer}>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.cancelButton]}
-            onPress={() => setRemoveMemberModalVisible(false)}
-            disabled={removeMemberMutation.isPending}>
-            <Text
-              style={[
-                styles.cancelButtonText,
-                removeMemberMutation.isPending && styles.disabledButtonText,
-              ]}>
-              취소
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.deleteButton]}
-            onPress={handleRemoveMemberConfirm}
-            disabled={removeMemberMutation.isPending}>
-            {removeMemberMutation.isPending ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Text style={styles.deleteButtonText}>삭제</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </GroupModal>
-
-      {/* Alert Modal */}
-      <AlertModal
-        visible={alertModal.visible}
-        title={alertModal.title}
-        message={alertModal.message}
-        onClose={hideAlert}
-      />
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.white, // 전체 배경색
+  },
   container: {
     flex: 1,
     padding: spacing[4],
-    backgroundColor: colors.white,
   },
   centerContainer: {
     flex: 1,
@@ -1013,6 +1030,30 @@ const styles = StyleSheet.create({
   },
   removeMemberButton: {
     padding: spacing[1],
+  },
+  drawerContainer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: DRAWER_WIDTH,
+    backgroundColor: colors['light-grey-02'],
+    zIndex: 100,
+    // 그림자 효과 등 추가 가능
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 10,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 50,
   },
 });
 

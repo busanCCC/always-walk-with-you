@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -14,7 +13,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
-import { initializeAuth, initializeGoogleSignIn } from '@/utils/auth';
+import { initializeGoogleSignIn } from '@/utils/auth';
 import { getGroupByInviteToken, joinGroupByInvite } from '@/apis/groupApi';
 import { NavigationService } from '@/utils/NavigationService';
 import AlertModal from '@/components/common/AlertModal';
@@ -315,28 +314,30 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <BottomSheetModalProvider>
-            <View style={styles.appContainer} onLayout={onLayoutRootView}>
-              <AppNavigator />
-            </View>
-          </BottomSheetModalProvider>
-        </SafeAreaProvider>
-      </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <SafeAreaProvider>
+            <BottomSheetModalProvider>
+              <View style={styles.appContainer} onLayout={onLayoutRootView}>
+                <AppNavigator />
+              </View>
+            </BottomSheetModalProvider>
+          </SafeAreaProvider>
+        </QueryClientProvider>
 
-      {/* Custom Alert Modal */}
-      <AlertModal
-        visible={alertModal.visible}
-        title={alertModal.title}
-        message={alertModal.message}
-        onClose={hideAlert}
-        confirmText={alertModal.onConfirm ? '확인' : '확인'}
-      />
+        {/* Custom Alert Modal */}
+        <AlertModal
+          visible={alertModal.visible}
+          title={alertModal.title}
+          message={alertModal.message}
+          onClose={hideAlert}
+          confirmText={alertModal.onConfirm ? '확인' : '확인'}
+        />
 
-      <Toast />
-    </ErrorBoundary>
+        <Toast />
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
 

@@ -100,7 +100,7 @@ const SelectJournalModeScreen: React.FC = () => {
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               style={styles.headerButtonContainer}>
-              <Ionicons name="chevron-back" size={20} color={colors['dark-grey-02']} />
+              <Ionicons name="chevron-back" size={24} color={colors['dark-grey-02']} />
             </TouchableOpacity>
           }
           noBorder
