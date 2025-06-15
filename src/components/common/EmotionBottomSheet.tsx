@@ -19,7 +19,7 @@ export interface EmotionBottomSheetRef {
 const EmotionBottomSheet = forwardRef<EmotionBottomSheetRef, EmotionBottomSheetProps>(
   ({ onSelectEmotion, selectedEmotion }, ref) => {
     const bottomSheetModalRef = React.useRef<BottomSheetModal>(null);
-    const { data: emotions = [], isLoading } = useEmotionsQuery();
+    const { data: emotions = [] } = useEmotionsQuery();
     const insets = useSafeAreaInsets();
 
     // 스냅 포인트 설정 (높이 조절 가능)
@@ -112,7 +112,7 @@ const EmotionBottomSheet = forwardRef<EmotionBottomSheetRef, EmotionBottomSheetP
             <FlatList
               data={emotionRows}
               renderItem={renderColumnWrapper}
-              keyExtractor={(item, index) => `row-${index}`}
+              keyExtractor={(_item, index) => `row-${index}`}
               contentContainerStyle={styles.emotionsContainer}
               showsVerticalScrollIndicator={false}
             />

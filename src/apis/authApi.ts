@@ -109,7 +109,7 @@ export const signInWithKakao = async (): Promise<KakaoLoginResult> => {
 };
 
 // Google 로그인 초기화 함수 (앱 시작 시 호출)
-export const initializeGoogleSignIn = async () => {
+export const initializeGoogleSignIn = async (): Promise<void> => {
   try {
     await GoogleSignin.configure({
       webClientId: '363398054005-mrupertl7685gk0boohs3d89svecg95m.apps.googleusercontent.com', // Google Cloud Console에서 생성한 웹 클라이언트 ID
@@ -117,8 +117,10 @@ export const initializeGoogleSignIn = async () => {
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
+    console.log('[Auth] Google 로그인 초기화 성공');
   } catch (error) {
-    console.error('Google SignIn configuration error:', error);
+    console.error('[Auth] Google 로그인 초기화 실패:', error);
+    // Google 로그인 실패는 앱 시작을 막지 않음 - 에러를 던지지 않고 조용히 실패 처리
   }
 };
 

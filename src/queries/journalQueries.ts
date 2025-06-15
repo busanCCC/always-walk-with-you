@@ -14,14 +14,14 @@ import {
   updateJournal,
   fetchGroupJournals,
   checkJournalExistsForDate,
-} from '../apis/journalApi';
-import questionsData from '../assets/data/questions.json';
-import { Question } from '../types/journal';
-import { fetchUserGroups } from '../apis/groupApi';
-import { Journal } from '../types/journal';
-import { UserGroup } from '../types/group';
+} from '@/apis/journalApi';
+import { getAllQuestions, DifficultyLevel, Question } from '@/utils/questionUtils';
+import { useQuestionStore } from '@/store/questionStore';
+import { fetchUserGroups } from '@/apis/groupApi';
+import { Journal } from '@/types/journal';
+import { UserGroup } from '@/types/group';
 import { useAuthStore } from '@/store/authStore';
-import { getSunday, formatDate } from '../utils/dateUtils';
+import { getSunday, formatDate } from '@/utils/dateUtils';
 
 export const journalQueryKeys = {
   all: ['journals'] as const,
@@ -109,21 +109,45 @@ export const useEmotionsQuery = () => {
   return useQuery({
     queryKey: ['emotions'],
     queryFn: fetchEmotions,
-    staleTime: 1000 * 60 * 60, // 1시간 캐시
+    staleTime: (data) => {
+      // 데이터가 없거나 비어있으면 즉시 stale로 처리 (다시 fetch)
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        return 0;
+      }
+      // 정상 데이터가 있으면 24시간 캐시
+      return 1000 * 60 * 60 * 24;
+    },
+    gcTime: 1000 * 60 * 60 * 24 * 7, // 7일간 가비지 컬렉션하지 않음
+    refetchOnMount: (query) => {
+      // 데이터가 없거나 비어있으면 마운트 시 다시 fetch
+      const data = query.state.data;
+      return !data || (Array.isArray(data) && data.length === 0);
+    },
+    retry: (failureCount, error) => {
+      // 네트워크 에러의 경우 최대 3번 재시도
+      if (failureCount < 3) {
+        return true;
+      }
+      return false;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // 지수적 백오프
   });
 };
 
 /**
- * 모든 질문 데이터를 가져오는 쿼리 훅 (로컬 JSON 사용)
+ * 난이도와 날짜에 따른 질문 데이터를 가져오는 쿼리 훅
  */
-export const useQuestionsQuery = () => {
+export const useQuestionsQuery = (date?: Date) => {
+  const difficulty = useQuestionStore((state) => state.difficulty);
+
   return useQuery<Question[], Error>({
-    queryKey: ['questions'],
+    queryKey: ['questions', difficulty, date?.toDateString() || new Date().toDateString()],
     queryFn: async () => {
-      // 로컬 JSON 데이터를 Promise로 래핑하여 반환
-      return Promise.resolve(questionsData as Question[]);
+      // 난이도와 날짜에 따른 질문들을 가져옴 (1번은 매일 변경, 2,3,4번은 고정)
+      return Promise.resolve(getAllQuestions(difficulty, date));
     },
-    staleTime: Infinity, // 로컬 데이터이므로 캐시를 계속 유지
+    staleTime: 1000 * 60 * 60 * 24, // 24시간 캐시 (하루 단위로 변경)
+    gcTime: 1000 * 60 * 60 * 24 * 7, // 7일간 가비지 컬렉션하지 않음
   });
 };
 

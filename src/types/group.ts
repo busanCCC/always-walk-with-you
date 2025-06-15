@@ -2,7 +2,6 @@ export interface Group {
   id: string; // uuid
   name: string;
   description?: string;
-  campus?: string;
   created_at: string;
   updated_at: string;
   // 계산된 필드
@@ -22,13 +21,11 @@ export interface GroupMembership {
 export interface CreateGroupPayload {
   name: string;
   description: string;
-  campus?: string;
 }
 
 export interface UpdateGroupPayload {
   name: string;
   description: string;
-  campus?: string;
 }
 
 // 그룹 멤버 정보와 사용자 정보를 함께 표시하기 위한 타입

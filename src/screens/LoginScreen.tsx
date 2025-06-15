@@ -24,26 +24,11 @@ import { isAppleAuthenticationAvailable } from '@/apis/authApi';
 export default function LoginScreen() {
   const [isAppleLoginAvailable, setIsAppleLoginAvailable] = useState(false);
 
-  const {
-    mutate: signInWithKakao,
-    isError: isKakaoError,
-    isPending: isKakaoPending,
-    error: kakaoError,
-  } = useSignInWithKakaoMutation();
+  const { mutate: signInWithKakao, isPending: isKakaoPending } = useSignInWithKakaoMutation();
 
-  const {
-    mutate: signInWithGoogle,
-    isError: isGoogleError,
-    isPending: isGooglePending,
-    error: googleError,
-  } = useSignInWithGoogleMutation();
+  const { mutate: signInWithGoogle, isPending: isGooglePending } = useSignInWithGoogleMutation();
 
-  const {
-    mutate: signInWithApple,
-    isError: isAppleError,
-    isPending: isApplePending,
-    error: appleError,
-  } = useSignInWithAppleMutation();
+  const { mutate: signInWithApple, isPending: isApplePending } = useSignInWithAppleMutation();
 
   useEffect(() => {
     // Apple 로그인 가능 여부 확인 (iOS에서만)
@@ -86,7 +71,7 @@ export default function LoginScreen() {
             disabled={isKakaoPending}>
             <KakaoIcon width={20} height={20} style={styles.kakaoIcon} />
             <StyledText variant="base-normal" colorKey="dark-grey-02">
-              {isKakaoPending ? '로그인 중...' : '카카오로 3초만에 시작하기'}
+              {isKakaoPending ? '로그인 중...' : '카카오로 시작하기'}
             </StyledText>
           </TouchableOpacity>
 
@@ -113,23 +98,19 @@ export default function LoginScreen() {
             </TouchableOpacity>
           )}
 
-          {(isKakaoError || isGoogleError || isAppleError) && (
-            <StyledText colorKey="red-500" variant="sm-normal">
-              로그인 중 오류가 발생했습니다:{' '}
-              {kakaoError?.message || googleError?.message || appleError?.message}
-            </StyledText>
-          )}
+          {/* 토스트 메시지로 로그인 에러를 처리하므로 여기서는 제거 */}
           <StyledText variant="xs-normal" colorKey="grey-02" style={styles.termsInfoText}>
             로그인함으로써 매일동행의 정책 및 약관에 동의합니다.
           </StyledText>
           <View style={styles.linksContainer}>
-            <TouchableOpacity onPress={() => openLink('YOUR_TERMS_OF_SERVICE_URL')}>
+            <TouchableOpacity
+              onPress={() => openLink('https://always-walk-with-you.vercel.app/terms')}>
               <StyledText variant="xs-normal" colorKey="grey-02" style={styles.linkText}>
                 서비스 이용약관
               </StyledText>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => openLink('YOUR_PRIVACY_POLICY_URL')}
+              onPress={() => openLink('https://always-walk-with-you.vercel.app/privacy')}
               style={styles.privacyLinkContainer}>
               <StyledText variant="xs-normal" colorKey="grey-02" style={styles.linkText}>
                 개인정보 처리방침

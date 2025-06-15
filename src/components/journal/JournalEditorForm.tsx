@@ -21,7 +21,8 @@ import EmotionBottomSheet, { EmotionBottomSheetRef } from '@/components/common/E
 import GroupShareBottomSheet, {
   GroupShareBottomSheetRef,
 } from '@/components/common/GroupShareBottomSheet';
-import { Emotion, Question } from '@/types/journal';
+import AlertModal from '@/components/common/AlertModal';
+import { Emotion } from '@/types/journal';
 
 interface QuestionAnswer {
   question_id?: string;
@@ -45,7 +46,7 @@ interface JournalEditorFormProps {
   // 질문 기반 모드
   promptAnswers?: QuestionAnswer[];
   onPromptAnswerChange?: (order: number, text: string) => void;
-  questions?: Question[];
+  questions?: any[];
 
   // 감정 선택
   onSelectEmotion: (emotion: Emotion) => void;
@@ -98,6 +99,10 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const keyboardHeightAnimated = useRef(new Animated.Value(0)).current;
 
+  // 알림 모달 상태
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
+
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
@@ -142,6 +147,32 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
 
   const handleSave = () => {
     Keyboard.dismiss(); // 저장 시 키보드 내리기
+
+    // 질문 기반 모드에서 모든 질문에 답변했는지 확인
+    if (mode === 'prompt_based') {
+      const unansweredCount = promptAnswers.filter(
+        (answer) => !answer.answer || answer.answer.trim().length === 0
+      ).length;
+
+      if (unansweredCount > 0) {
+        setValidationMessage(
+          `아직 답하지 않은 질문이 ${unansweredCount}개 있습니다.\n모든 질문에 답을 작성해주세요.`
+        );
+        setShowValidationModal(true);
+        return;
+      }
+    }
+
+    // 자유 작성 모드에서 내용이 있는지 확인
+    if (mode === 'free_writing') {
+      if (!freeWriteContent || freeWriteContent.trim().length === 0) {
+        setValidationMessage('일기 내용을 입력해주세요.');
+        setShowValidationModal(true);
+        return;
+      }
+    }
+
+    // 모든 validation 통과하면 저장
     onSave();
   };
 
@@ -156,7 +187,7 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
         multiline
         textAlignVertical="top"
         editable={!disabled}
-        returnKeyType="done"
+        returnKeyType="default"
         blurOnSubmit={true}
       />
     </View>
@@ -167,14 +198,19 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
       style={styles.scrollContainer}
       contentContainerStyle={styles.scrollContentContainer}
       showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled">
+      keyboardShouldPersistTaps="handled"
+      bounces={true}
+      scrollEventThrottle={16}
+      onTouchStart={() => Keyboard.dismiss()}>
       {promptAnswers.map((answer, index) => {
         const question = questions.find((q) => q.order_index === answer.order) || questions[index];
         return (
           <View key={answer.order || index} style={styles.questionContainer}>
-            <Text style={styles.questionText}>
-              {question?.content || answer.question_text || `질문 ${index + 1}`}
-            </Text>
+            <View style={styles.questionTextContainer}>
+              <Text style={styles.questionText}>
+                {question?.content || answer.question_text || `질문 ${index + 1}`}
+              </Text>
+            </View>
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.textInput}
@@ -185,6 +221,7 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
                 multiline
                 textAlignVertical="top"
                 editable={!disabled}
+                scrollEnabled={false}
               />
             </View>
           </View>
@@ -195,30 +232,29 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
 
   return (
     <View style={styles.container}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
-          {/* Journal Header - 날짜, 요일, 감정 아이콘 */}
-          <View style={styles.headerContainer}>
-            <JournalHeader
-              date={date}
-              emotion={selectedEmotion || defaultEmotion}
-              onEmotionPress={handleEmotionPress}
-              defaultEmotion={defaultEmotion}
-            />
-          </View>
+      <KeyboardAvoidingView
+        style={styles.keyboardContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+        {/* Journal Header - 날짜, 요일, 감정 아이콘 */}
+        <View style={styles.headerContainer}>
+          <JournalHeader
+            date={date}
+            isWriteMode={true}
+            emotion={selectedEmotion || defaultEmotion}
+            onEmotionPress={handleEmotionPress}
+            defaultEmotion={defaultEmotion}
+          />
+        </View>
 
-          {/* 구분선 */}
-          <View style={styles.divider} />
+        {/* 구분선 */}
+        <View style={styles.divider} />
 
-          {/* 내용 입력 영역 */}
-          <View style={styles.contentWrapper}>
-            {mode === 'free_writing' ? renderFreeWriteContent() : renderPromptBasedContent()}
-          </View>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+        {/* 내용 입력 영역 */}
+        <View style={styles.contentWrapper}>
+          {mode === 'free_writing' ? renderFreeWriteContent() : renderPromptBasedContent()}
+        </View>
+      </KeyboardAvoidingView>
 
       {/* Footer - 키보드 위에 고정되는 버튼들 */}
       <Animated.View
@@ -291,6 +327,15 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
           initialSelectedGroups={selectedGroupIds}
         />
       )}
+
+      {/* Validation Modal */}
+      <AlertModal
+        visible={showValidationModal}
+        title="입력 확인"
+        message={validationMessage}
+        confirmText="확인"
+        onClose={() => setShowValidationModal(false)}
+      />
     </View>
   );
 };
@@ -328,18 +373,22 @@ const styles = StyleSheet.create({
   // 질문 기반 모드 스타일
   scrollContainer: {
     flex: 1,
+    backgroundColor: colors.white,
   },
   scrollContentContainer: {
+    flexGrow: 1,
     padding: spacing[4],
-    paddingBottom: 180, // footer 높이 + 여백
+    paddingBottom: 120, // footer 높이 + 여백 줄임
   },
   questionContainer: {
     marginBottom: spacing[6],
   },
+  questionTextContainer: {
+    marginBottom: spacing[3],
+  },
   questionText: {
     ...fontStyles['base-tight'],
     color: colors.black,
-    marginBottom: spacing[3],
     lineHeight: 24,
   },
   inputContainer: {

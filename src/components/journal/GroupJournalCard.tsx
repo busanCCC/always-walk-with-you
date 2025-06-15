@@ -16,7 +16,6 @@ const GroupJournalCard: React.FC<GroupJournalCardProps> = ({ journal, onPress })
   const authorDisplayName = getUserDisplayName(
     journal.user?.name || '알 수 없음',
     journal.user?.email || '알 수 없음',
-    journal.user?.role || '알 수 없음',
     journal.user?.is_admin || false
   );
 

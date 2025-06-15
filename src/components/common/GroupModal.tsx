@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
+  Animated,
 } from 'react-native';
 import { colors, spacing, fontStyles } from '@/constants/theme';
 
@@ -23,20 +24,81 @@ interface GroupModalProps {
 }
 
 const GroupModal: React.FC<GroupModalProps> = ({ visible, onClose, title, children }) => {
+  const backgroundOpacity = useRef(new Animated.Value(0)).current;
+  const modalScale = useRef(new Animated.Value(0.8)).current;
+  const modalOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      // 모달이 나타날 때
+      Animated.parallel([
+        Animated.timing(backgroundOpacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(modalOpacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.spring(modalScale, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // 모달이 사라질 때
+      Animated.parallel([
+        Animated.timing(backgroundOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(modalOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(modalScale, {
+          toValue: 0.9,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, backgroundOpacity, modalScale, modalOpacity]);
+
+  const handleBackdropPress = () => {
+    Keyboard.dismiss();
+    onClose();
+  };
+
   return (
-    <Modal transparent={true} visible={visible} onRequestClose={onClose} animationType="fade">
+    <Modal transparent={true} visible={visible} onRequestClose={onClose} animationType="none">
       <KeyboardAvoidingView
         style={styles.modalOverlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <TouchableWithoutFeedback
-          onPress={() => {
-            Keyboard.dismiss();
-            onClose();
-          }}>
-          <View style={styles.centeredModal}>
+        <TouchableWithoutFeedback onPress={handleBackdropPress}>
+          <Animated.View
+            style={[
+              styles.centeredModal,
+              {
+                opacity: backgroundOpacity,
+              },
+            ]}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-                <View style={styles.modalContent}>
+                <Animated.View
+                  style={[
+                    styles.modalContent,
+                    {
+                      opacity: modalOpacity,
+                      transform: [{ scale: modalScale }],
+                    },
+                  ]}>
                   <Text style={styles.modalTitle}>{title}</Text>
                   <ScrollView
                     style={styles.scrollContainer}
@@ -45,10 +107,10 @@ const GroupModal: React.FC<GroupModalProps> = ({ visible, onClose, title, childr
                     showsVerticalScrollIndicator={false}>
                     {children}
                   </ScrollView>
-                </View>
+                </Animated.View>
               </TouchableWithoutFeedback>
             </TouchableWithoutFeedback>
-          </View>
+          </Animated.View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </Modal>

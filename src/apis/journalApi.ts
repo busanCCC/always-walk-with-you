@@ -413,7 +413,7 @@ export const fetchGroupJournals = async (groupId: string): Promise<Journal[]> =>
         *,
         emotions (*),
         journal_entries (*),
-        users (id, name, email, profile_img, role)
+        users (id, name, email, profile_img)
       `
       )
       .contains('shared_groups', [groupId])
@@ -468,7 +468,6 @@ export const fetchGroupJournals = async (groupId: string): Promise<Journal[]> =>
               email: j.users.email,
               profile_img: j.users.profile_img,
               is_admin: membershipMap.get(j.user_id) || false,
-              role: j.users.role,
             }
           : null,
       })

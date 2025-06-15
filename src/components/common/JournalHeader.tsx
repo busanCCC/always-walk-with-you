@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { colors, fontStyles, spacing } from '@/constants/theme';
 import { Emotion } from '@/types/journal';
 import { getUserDisplayName } from '@/utils/roleMapper';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 interface JournalHeaderProps {
   date?: Date;
@@ -13,9 +14,9 @@ interface JournalHeaderProps {
   // 작성자 정보 (다른 사람 글일 때 표시)
   authorName?: string | null;
   authorEmail?: string | null;
-  authorRole?: string;
   isAuthorAdmin?: boolean;
   showAuthor?: boolean; // 작성자 정보 표시 여부
+  isWriteMode?: boolean; // 수정 가능 여부
 }
 
 const JournalHeader: React.FC<JournalHeaderProps> = ({
@@ -26,9 +27,9 @@ const JournalHeader: React.FC<JournalHeaderProps> = ({
   defaultEmotion,
   authorName,
   authorEmail,
-  authorRole,
   isAuthorAdmin,
   showAuthor = false,
+  isWriteMode = false,
 }) => {
   const formatDate = (date: Date) => {
     const year = date.getFullYear().toString().slice(-2);
@@ -62,7 +63,9 @@ const JournalHeader: React.FC<JournalHeaderProps> = ({
           style={styles.emotionContainer}
           onPress={onEmotionPress}
           activeOpacity={0.7}>
-          <View style={[styles.emotionIcon, styles.emptyEmotionIcon]} />
+          <View style={[styles.emotionIcon, styles.emptyEmotionIcon]}>
+            <Text style={styles.plusIcon}>+</Text>
+          </View>
         </TouchableOpacity>
       );
     }
@@ -77,6 +80,12 @@ const JournalHeader: React.FC<JournalHeaderProps> = ({
             <Image source={{ uri: displayEmotion.img_url }} style={styles.emotionImage} />
           ) : (
             <Text style={styles.emotionText}>{displayEmotion.name.charAt(0)}</Text>
+          )}
+          {/* 펜 아이콘으로 수정 가능함을 표현 */}
+          {isWriteMode && (
+            <View style={styles.editIcon}>
+              <MaterialIcons name="create" size={16} color={colors['grey-02']} />
+            </View>
           )}
         </View>
       </TouchableOpacity>
@@ -96,7 +105,6 @@ const JournalHeader: React.FC<JournalHeaderProps> = ({
                 {getUserDisplayName(
                   authorName || '알 수 없음',
                   authorEmail || '알 수 없음',
-                  authorRole || '알 수 없음',
                   isAuthorAdmin || false
                 )}
               </Text>
@@ -154,6 +162,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   emptyEmotionIcon: {
     backgroundColor: colors['light-grey-01'],
@@ -165,6 +174,22 @@ const styles = StyleSheet.create({
   },
   emotionText: {
     fontSize: 24,
+  },
+  plusIcon: {
+    fontSize: 20,
+    color: colors['grey-02'],
+    fontWeight: '300',
+  },
+  editIcon: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: colors['white'],
+    borderRadius: 12,
+    width: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

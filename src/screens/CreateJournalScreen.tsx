@@ -54,9 +54,14 @@ const CreateJournalScreen: React.FC = () => {
   }>({ visible: false, title: '', message: '' });
   const groupShareBottomSheetRef = useRef<GroupShareBottomSheetRef>(null);
 
+  // 선택된 날짜 또는 오늘 날짜 (현지 시간 기준으로 정확히 변환)
+  const journalDate = selectedDate
+    ? new Date(selectedDate + 'T00:00:00') // 현지 시간 기준으로 자정 설정
+    : new Date(getTodayString() + 'T00:00:00'); // 오늘 날짜도 현지 시간 기준으로
+
   // 데이터 가져오기
   const { data: emotions = [] } = useEmotionsQuery();
-  const { data: questions = [] } = useQuestionsQuery();
+  const { data: questions = [] } = useQuestionsQuery(journalDate);
 
   // 저널 생성 mutation
   const createJournalMutation = useCreateJournalMutation();
@@ -66,11 +71,6 @@ const CreateJournalScreen: React.FC = () => {
 
   // 기본 행복 감정 찾기 (이름이 '행복'인 감정을 찾거나 첫 번째 감정 사용)
   const defaultEmotion = emotions.find((emotion) => emotion.name === '행복') || emotions[0];
-
-  // 선택된 날짜 또는 오늘 날짜 (현지 시간 기준으로 정확히 변환)
-  const journalDate = selectedDate
-    ? new Date(selectedDate + 'T00:00:00') // 현지 시간 기준으로 자정 설정
-    : new Date(getTodayString() + 'T00:00:00'); // 오늘 날짜도 현지 시간 기준으로
 
   // 날짜 문자열 (YYYY-MM-DD 형식)
   const dateString = selectedDate || getTodayString();
@@ -149,7 +149,7 @@ const CreateJournalScreen: React.FC = () => {
                 }
               }}
               style={styles.headerButton}>
-              <Ionicons name="chevron-back" size={20} color={colors['dark-grey-02']} />
+              <Ionicons name="chevron-back" size={24} color={colors['dark-grey-02']} />
             </TouchableOpacity>
           }
           noBorder

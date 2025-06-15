@@ -70,8 +70,8 @@ const CustomHeader: React.FC<CustomHeaderProps> = ({
   const headerContentHeight = 54; // 예시: 실제 아이콘과 제목 등이 들어갈 영역의 높이
 
   const safeAreaTopPadding = Platform.select({
-    ios: insets.top,
-    // android: StatusBar.currentHeight || 0, // StatusBar.currentHeight가 undefined일 경우 0으로 처리
+    ios: Math.max(insets.top, 20), // iOS에서 최소 20px 확보
+    android: 0, // Android는 StatusBar가 별도 처리됨
     default: 0,
   });
 

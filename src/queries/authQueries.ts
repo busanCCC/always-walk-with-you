@@ -8,6 +8,7 @@ import {
   signOut as apiSignOut,
 } from '@/apis/authApi';
 import type { KakaoLoginResult, GoogleLoginResult, AppleLoginResult } from '@/apis/authApi';
+import Toast from 'react-native-toast-message';
 
 export const authQueryKeys = {
   session: ['session'] as const,
@@ -27,18 +28,45 @@ export const useSignInWithKakaoMutation = (): UseMutationResult<
       if (data.error) {
         console.error('Error signing in with Kakao (returned by API):', data.error);
         setSessionData(null, null);
+        Toast.show({
+          type: 'error',
+          text1: '카카오 로그인 실패',
+          text2:
+            typeof data.error === 'string'
+              ? data.error
+              : data.error?.message || '알 수 없는 오류가 발생했습니다.',
+          visibilityTime: 3000,
+        });
       } else if (data.session && data.user) {
         setSessionData(data.session, data.user);
+        Toast.show({
+          type: 'success',
+          text1: '로그인 성공',
+          text2: '카카오 계정으로 로그인되었습니다.',
+          visibilityTime: 2000,
+        });
       } else {
         console.error(
           'signInWithKakaoMutation: Session or user data is missing and no error reported.'
         );
         setSessionData(null, null);
+        Toast.show({
+          type: 'error',
+          text1: '로그인 오류',
+          text2: '로그인 처리 중 문제가 발생했습니다.',
+          visibilityTime: 3000,
+        });
       }
     },
     onError: (error: AuthError) => {
       console.error('Error signing in with Kakao (mutation error):', error.message);
       setSessionData(null, null);
+      Toast.show({
+        type: 'error',
+        text1: '카카오 로그인 실패',
+        text2: '네트워크 오류가 발생했습니다.',
+        visibilityTime: 3000,
+      });
     },
   });
 };
@@ -57,18 +85,45 @@ export const useSignInWithGoogleMutation = (): UseMutationResult<
       if (data.error) {
         console.error('Error signing in with Google (returned by API):', data.error);
         setSessionData(null, null);
+        Toast.show({
+          type: 'error',
+          text1: '구글 로그인 실패',
+          text2:
+            typeof data.error === 'string'
+              ? data.error
+              : data.error?.message || '알 수 없는 오류가 발생했습니다.',
+          visibilityTime: 3000,
+        });
       } else if (data.session && data.user) {
         setSessionData(data.session, data.user);
+        Toast.show({
+          type: 'success',
+          text1: '로그인 성공',
+          text2: '구글 계정으로 로그인되었습니다.',
+          visibilityTime: 2000,
+        });
       } else {
         console.error(
           'signInWithGoogleMutation: Session or user data is missing and no error reported.'
         );
         setSessionData(null, null);
+        Toast.show({
+          type: 'error',
+          text1: '로그인 오류',
+          text2: '로그인 처리 중 문제가 발생했습니다.',
+          visibilityTime: 3000,
+        });
       }
     },
     onError: (error: AuthError) => {
       console.error('Error signing in with Google (mutation error):', error.message);
       setSessionData(null, null);
+      Toast.show({
+        type: 'error',
+        text1: '구글 로그인 실패',
+        text2: '네트워크 오류가 발생했습니다.',
+        visibilityTime: 3000,
+      });
     },
   });
 };
@@ -87,18 +142,45 @@ export const useSignInWithAppleMutation = (): UseMutationResult<
       if (data.error) {
         console.error('Error signing in with Apple (returned by API):', data.error);
         setSessionData(null, null);
+        Toast.show({
+          type: 'error',
+          text1: 'Apple 로그인 실패',
+          text2:
+            typeof data.error === 'string'
+              ? data.error
+              : data.error?.message || '알 수 없는 오류가 발생했습니다.',
+          visibilityTime: 3000,
+        });
       } else if (data.session && data.user) {
         setSessionData(data.session, data.user);
+        Toast.show({
+          type: 'success',
+          text1: '로그인 성공',
+          text2: 'Apple 계정으로 로그인되었습니다.',
+          visibilityTime: 2000,
+        });
       } else {
         console.error(
           'signInWithAppleMutation: Session or user data is missing and no error reported.'
         );
         setSessionData(null, null);
+        Toast.show({
+          type: 'error',
+          text1: '로그인 오류',
+          text2: '로그인 처리 중 문제가 발생했습니다.',
+          visibilityTime: 3000,
+        });
       }
     },
     onError: (error: AuthError) => {
       console.error('Error signing in with Apple (mutation error):', error.message);
       setSessionData(null, null);
+      Toast.show({
+        type: 'error',
+        text1: 'Apple 로그인 실패',
+        text2: '네트워크 오류가 발생했습니다.',
+        visibilityTime: 3000,
+      });
     },
   });
 };

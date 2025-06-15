@@ -13,14 +13,6 @@ export function LoadingScreen() {
         backgroundColor: theme.colors.white,
       }}>
       <ActivityIndicator size="large" color={theme.colors.primary.DEFAULT} />
-      <Text
-        style={{
-          fontFamily: theme.fonts.regular,
-          fontSize: 18,
-          color: theme.colors.primary.DEFAULT,
-        }}>
-        데이터를 불러오는 중...
-      </Text>
     </View>
   );
 }

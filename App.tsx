@@ -8,14 +8,17 @@ import * as Linking from 'expo-linking';
 import { useAppFonts } from '@/hooks/useAppFonts';
 import { useAuthStore } from '@/store/authStore';
 import AppNavigator from '@/navigation/AppNavigator';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, StatusBar } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
-import { initializeGoogleSignIn } from '@/utils/auth';
+import { initializeGoogleSignIn } from '@/apis/authApi';
+import { toastConfig } from '@/components/common/CustomToast';
 import { getGroupByInviteToken, joinGroupByInvite } from '@/apis/groupApi';
-import { NavigationService } from '@/utils/NavigationService';
+import { fetchEmotions } from '@/apis/journalApi';
+import questionsData from '@/assets/data/questions.json';
+import { NavigationUtils } from '@/utils/NavigationService';
 import AlertModal from '@/components/common/AlertModal';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { supabase } from '@/utils/supabaseClient';
@@ -66,9 +69,27 @@ export default function App() {
     const initializeApp = async () => {
       try {
         await initializeAuth();
-        await initializeGoogleSignIn();
+
+        // Google 로그인 초기화는 별도로 처리 (실패해도 앱 시작을 막지 않음)
+        try {
+          await initializeGoogleSignIn();
+        } catch (googleError) {
+          console.warn('Google 로그인 초기화 실패:', googleError);
+        }
+
+        // 핵심 데이터들 미리 로드 (백그라운드에서 실행)
+        try {
+          // 1. 감정 데이터 로드 (Supabase API 호출)
+          const emotionsData = await fetchEmotions();
+          queryClient.setQueryData(['emotions'], emotionsData);
+
+          // 2. 질문 데이터 캐시 (로컬 JSON)
+          queryClient.setQueryData(['questions'], questionsData);
+        } catch (error) {
+          console.warn('핵심 데이터 미리 로딩 실패:', error);
+        }
       } catch (error) {
-        console.error('[App.tsx] App initialization error:', error);
+        console.error('App initialization error:', error);
         Toast.show({
           type: 'error',
           text1: '앱 초기화 오류',
@@ -90,20 +111,15 @@ export default function App() {
     }
 
     const [, groupId, inviteToken] = matches;
-    console.log('📊 Extracted data:', { groupId, inviteToken });
 
     if (!session) {
-      console.log('❌ User not authenticated');
       showAlert('로그인 필요', '초대 링크를 사용하려면 먼저 로그인해주세요.');
       return;
     }
 
     try {
-      console.log('🔍 Getting group info by invite token...');
-
       // 토큰으로 그룹 정보 조회
       const result = await getGroupByInviteToken(inviteToken);
-      console.log('✅ Group info retrieved:', result);
 
       if (!result) {
         showAlert('초대 링크 오류', '유효하지 않거나 만료된 초대 링크입니다.');
@@ -117,7 +133,6 @@ export default function App() {
       }
 
       // 이미 가입되어 있는지 먼저 확인
-      console.log('🔍 Checking if already a member...');
       const { data: existingMembership } = await supabase
         .from('group_memberships')
         .select('id')
@@ -127,13 +142,12 @@ export default function App() {
 
       if (existingMembership) {
         // 이미 가입된 경우
-        console.log('✅ Already a member, showing info message');
         showAlert(
           '이미 가입된 순',
           `"${result.groups?.name || '순'}" 순에 이미 가입되어 있습니다.\n\n해당 순 페이지로 이동하시겠습니까?`,
           () => {
             // 이미 가입된 순 페이지로 이동
-            NavigationService.navigate('GroupDetail', {
+            NavigationUtils.navigate('GroupDetail', {
               groupId: result.group_id,
               groupName: result.groups?.name || '순',
             });
@@ -144,7 +158,6 @@ export default function App() {
 
       // 그룹 가입 시도
       const joinResult = await joinGroupByInvite(inviteToken);
-      console.log('✅ Join result:', joinResult);
 
       if (joinResult.success) {
         showAlert(
@@ -152,7 +165,7 @@ export default function App() {
           `"${result.groups?.name || '순'}" 순에 성공적으로 가입되었습니다.\n\n해당 순 페이지로 이동하시겠습니까?`,
           () => {
             // 성공 시 해당 그룹 페이지로 자동 이동
-            NavigationService.navigate('GroupDetail', {
+            NavigationUtils.navigate('GroupDetail', {
               groupId: result.group_id,
               groupName: result.groups?.name || '순',
             });
@@ -214,10 +227,9 @@ export default function App() {
             visibilityTime: 3000,
           });
 
-          // TODO: 네비게이션을 통해 해당 그룹 페이지로 이동
-          console.log('[App.tsx] Successfully joined group via pending link:', result.group.name);
+          console.log('Successfully joined group via pending link:', result.group.name);
         } catch (error) {
-          console.error('[App.tsx] Pending group invite error:', error);
+          console.error('Pending group invite error:', error);
 
           const errorMessage =
             error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
@@ -245,7 +257,7 @@ export default function App() {
         setAppIsReady(true); // 앱 준비 완료 설정
         await SplashScreen.hideAsync();
       } catch (error) {
-        console.error('[App.tsx] Error hiding splash screen:', error);
+        console.error('Error hiding splash screen:', error);
         hiddenRef.current = false; // 에러 발생 시 재시도 가능하도록
         Toast.show({
           type: 'error',
@@ -262,7 +274,7 @@ export default function App() {
   // 폰트 로딩 에러 처리 (iOS에서는 토스트 표시 안함)
   useEffect(() => {
     if (fontError) {
-      console.warn('[App.tsx] Font loading error detected:', fontError);
+      console.warn('Font loading error detected:', fontError);
 
       // iOS에서는 경고만 로그에 남기고 토스트는 표시하지 않음
       if (Platform.OS !== 'ios') {
@@ -291,7 +303,7 @@ export default function App() {
             visibilityTime: 2000,
           });
         } catch (error) {
-          console.error('[App.tsx] Error in timeout splash screen hide:', error);
+          console.error('Error in timeout splash screen hide:', error);
           Toast.show({
             type: 'error',
             text1: '앱 시작 문제',
@@ -318,6 +330,7 @@ export default function App() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <SafeAreaProvider>
+            <StatusBar barStyle="dark-content" backgroundColor="white" translucent={false} />
             <BottomSheetModalProvider>
               <View style={styles.appContainer} onLayout={onLayoutRootView}>
                 <AppNavigator />
@@ -335,7 +348,7 @@ export default function App() {
           confirmText={alertModal.onConfirm ? '확인' : '확인'}
         />
 
-        <Toast />
+        <Toast config={toastConfig} position="bottom" bottomOffset={50} />
       </ErrorBoundary>
     </GestureHandlerRootView>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,9 +7,9 @@ import Toast from 'react-native-toast-message';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { RootStackParamList } from '@/navigation/types';
-import { fetchJournalById, updateJournal, fetchEmotions } from '@/apis/journalApi';
+import { fetchJournalById, fetchEmotions } from '@/apis/journalApi';
 import { useAuthStore } from '@/store/authStore';
-import { Journal, Emotion } from '@/types/journal';
+import { Emotion } from '@/types/journal';
 import { useQuestionsQuery, useUpdateJournalMutation } from '@/queries/journalQueries';
 import { colors, spacing, fontStyles } from '@/constants/theme';
 import CustomHeader from '@/components/common/CustomHeader';
@@ -18,6 +18,7 @@ import GroupShareBottomSheet, {
   GroupShareBottomSheetRef,
 } from '@/components/common/GroupShareBottomSheet';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
+import AlertModal from '@/components/common/AlertModal';
 
 type EditJournalScreenRouteProp = RouteProp<RootStackParamList, 'EditJournal'>;
 type EditJournalScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'EditJournal'>;
@@ -36,6 +37,13 @@ const EditJournalScreen = () => {
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [showExitModal, setShowExitModal] = useState(false);
   const [isForceExit, setIsForceExit] = useState(false);
+
+  // AlertModal state
+  const [alertModal, setAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+  });
 
   // 일기 데이터 조회
   const {
@@ -58,8 +66,9 @@ const EditJournalScreen = () => {
     queryFn: fetchEmotions,
   });
 
-  // 질문 데이터 조회
-  const { data: questions = [] } = useQuestionsQuery();
+  // 질문 데이터 조회 (일기 날짜 기준)
+  const journalDate = journal?.date ? new Date(journal.date + 'T00:00:00') : new Date();
+  const { data: questions = [] } = useQuestionsQuery(journalDate);
 
   // 일기 수정 mutation
   const updateMutation = useUpdateJournalMutation();
@@ -146,7 +155,7 @@ const EditJournalScreen = () => {
   useEffect(() => {
     if (journal) {
       setSelectedEmotion(journal.emotion || null);
-      setSelectedGroupIds(journal.shared_groups || []);
+      setSelectedGroupIds(journal.shared_groups?.map((group) => group.id) || []);
 
       if (journal.mode === 'free_writing') {
         const generalEntry = journal.journal_entries?.find(
@@ -177,7 +186,7 @@ const EditJournalScreen = () => {
     const originalGroupIds = journal.shared_groups || [];
     if (
       selectedGroupIds.length !== originalGroupIds.length ||
-      !selectedGroupIds.every((id) => originalGroupIds.includes(id))
+      !selectedGroupIds.every((id) => originalGroupIds.some((group) => group.id === id))
     ) {
       return true;
     }
@@ -212,21 +221,29 @@ const EditJournalScreen = () => {
     }, 0);
   };
 
+  const showAlert = (title: string, message: string) => {
+    setAlertModal({ visible: true, title, message });
+  };
+
+  const hideAlert = () => {
+    setAlertModal({ visible: false, title: '', message: '' });
+  };
+
   const handleSave = () => {
     if (!selectedEmotion) {
-      Alert.alert('알림', '감정을 선택해주세요.');
+      showAlert('알림', '감정을 선택해주세요.');
       return;
     }
 
     if (journal?.mode === 'free_writing' && !freeWriteContent.trim()) {
-      Alert.alert('알림', '일기 내용을 입력해주세요.');
+      showAlert('알림', '일기 내용을 입력해주세요.');
       return;
     }
 
     if (journal?.mode === 'prompt_based') {
       const hasEmptyAnswer = promptAnswers.some((answer) => !answer.answer.trim());
       if (hasEmptyAnswer) {
-        Alert.alert('알림', '모든 질문에 답변해주세요.');
+        showAlert('알림', '모든 질문에 답변해주세요.');
         return;
       }
     }
@@ -251,7 +268,7 @@ const EditJournalScreen = () => {
       journalId,
       userId: user!.id,
       updateData,
-      originalSharedGroups: journal?.shared_groups || [],
+      originalSharedGroups: journal?.shared_groups?.map((group) => group.id) || [],
     });
   };
 
@@ -328,6 +345,14 @@ const EditJournalScreen = () => {
         ref={groupShareBottomSheetRef}
         onSelectGroups={handleSelectGroups}
         initialSelectedGroups={selectedGroupIds}
+      />
+
+      {/* 알림 모달 */}
+      <AlertModal
+        visible={alertModal.visible}
+        title={alertModal.title}
+        message={alertModal.message}
+        onClose={hideAlert}
       />
     </>
   );

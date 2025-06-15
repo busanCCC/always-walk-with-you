@@ -163,7 +163,6 @@ const GroupDetailScreen = () => {
       setEditGroupData({
         name: groupDetails.name,
         description: groupDetails.description || '',
-        campus: groupDetails.campus,
       });
     }
   }, [groupDetails]);
@@ -247,7 +246,7 @@ const GroupDetailScreen = () => {
       });
 
       // 초대 링크 생성
-      const inviteUrl = `https://invite-awwy.vercel.app/invite/${groupId}/${invite.invite_token}`;
+      const inviteUrl = `https://always-walk-with-you.vercel.app/invite/${groupId}/${invite.invite_token}`;
 
       // 공유 시트 열기
       const result = await Share.share({
@@ -365,7 +364,9 @@ const GroupDetailScreen = () => {
             )}
             ListEmptyComponent={() => (
               <View style={styles.centerContainer}>
-                <Text style={styles.placeholderText}>아직 공유된 영성일기가 없어요</Text>
+                <Text style={styles.placeholderText}>
+                  아직 공유된 영성일기가 없어요{'\n'}먼저 공유해볼까요?
+                </Text>
               </View>
             )}
             contentContainerStyle={groupJournals?.length === 0 ? styles.centerContainer : undefined}
@@ -432,7 +433,7 @@ const GroupDetailScreen = () => {
                             <View key={member.id} style={styles.memberItem}>
                               <View style={styles.memberAvatar}>
                                 {member.users.profile_img ? (
-                                  <Text>A</Text> // TODO: 실제 아바타 이미지 사용
+                                  <Text>A</Text>
                                 ) : (
                                   <Text style={styles.memberInitial}>
                                     {(member.users.name || member.users.email || 'U')
@@ -524,15 +525,6 @@ const GroupDetailScreen = () => {
             placeholder="순에 대한 설명을 입력하세요"
             multiline
             numberOfLines={4}
-            editable={!updateGroupMutation.isPending}
-          />
-
-          <Text style={styles.inputLabel}>캠퍼스</Text>
-          <TextInput
-            style={styles.textInput}
-            value={editGroupData.campus}
-            onChangeText={(text) => setEditGroupData({ ...editGroupData, campus: text })}
-            placeholder="캠퍼스 (선택사항)"
             editable={!updateGroupMutation.isPending}
           />
 

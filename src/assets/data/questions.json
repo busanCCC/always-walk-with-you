@@ -1,30 +1,483 @@
-[
-  {
-    "id": "q1",
-    "content": "오늘 하루 중 가장 기억에 남는 순간은 뭐였나요?",
-    "category": "reflection",
-    "placeholder": "친구랑 웃겼던 일, 수업 중에 있었던 일 등",
-    "order_index": 1
+{
+  "common": {
+    "q1": [
+      {
+        "id": "q1_1",
+        "content": "오늘 나를 웃게 만든 사람은 누구였나요?",
+        "category": "reflection",
+        "placeholder": "친구, 가족, 동료 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_2",
+        "content": "오늘 먹었던 것 중에 가장 맛있었던 것은 무엇인가요?",
+        "category": "reflection",
+        "placeholder": "점심, 간식, 음료 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_3",
+        "content": "창밖으로 본 하늘은 어떤 모습이었나요?",
+        "category": "reflection",
+        "placeholder": "맑았어요, 구름이 많았어요 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_4",
+        "content": "오늘 들었던 노래 중에 가장 좋았던 곡은 무엇인가요? (노래를 듣지 않았다면 봤던 영상이나 책 등 좋았던 것을 작성해주세요)",
+        "category": "reflection",
+        "placeholder": "노래 제목, 책 제목 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_5",
+        "content": "가장 편안하고 아늑하게 느껴졌던 장소는 어디였나요?",
+        "category": "reflection",
+        "placeholder": "집, 카페, 도서관 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_6",
+        "content": "누군가에게 들었던 칭찬이나 격려의 말이 있었나요?",
+        "category": "reflection",
+        "placeholder": "수고했어, 잘했네 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_7",
+        "content": "소소하게 '행복하다'고 느낀 순간은 언제였나요? (느낀 순간이 없다면 느낀 감정을 작성해주세요)",
+        "category": "reflection",
+        "placeholder": "친구와 이야기할 때, 좋아하는 음식을 먹을 때 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_8",
+        "content": "오늘 걸었던 길 위에서 발견한 새로운 것이 있었나요?",
+        "category": "reflection",
+        "placeholder": "새로운 가게, 예쁜 꽃 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_9",
+        "content": "오늘 내가 한 일 중에 가장 잘했다고 생각하는 것은 무엇인가요?",
+        "category": "reflection",
+        "placeholder": "숙제 완료, 친구 도움 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_10",
+        "content": "쉬는 시간에 무엇을 하며 즐거움을 느꼈나요?",
+        "category": "reflection",
+        "placeholder": "유튜브 시청, 게임, 독서 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_11",
+        "content": "오늘 본 영상이나 글 중에 기억에 남는 것이 있나요?",
+        "category": "reflection",
+        "placeholder": "재미있는 유튜브 영상, 인상적인 글 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_12",
+        "content": "누군가에게 작은 도움을 주었던 일이 있었나요?",
+        "category": "reflection",
+        "placeholder": "길 안내, 물건 도움 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_13",
+        "content": "오늘 하루, 나에게 가장 친절했던 사람은 누구였나요?",
+        "category": "reflection",
+        "placeholder": "친구, 가족, 선생님 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_14",
+        "content": "오늘 입은 옷 중에서 가장 마음에 들었던 것은 무엇인가요?",
+        "category": "reflection",
+        "placeholder": "상의, 하의, 액세서리 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_15",
+        "content": "오늘 맡았던 냄새 중 가장 기분 좋았던 향기는 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "음식 냄새, 향수, 자연 냄새 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_16",
+        "content": "오늘 하루, 나에게 가장 큰 위로가 된 것은 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "따뜻한 말, 좋아하는 음식 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_17",
+        "content": "오늘 가장 보고 싶다고 생각한 사람은 누구였나요?",
+        "category": "reflection",
+        "placeholder": "멀리 있는 친구, 가족 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_18",
+        "content": "오늘 내가 가장 시간을 많이 쓴 것은 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "공부, 게임, 휴대폰 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_19",
+        "content": "누군가와 나눈 대화 중에 가장 재미있었던 주제는 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "취미, 일상, 추억 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_20",
+        "content": "오늘 하루, 나에게 주는 작은 선물이 있었다면 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "좋아하는 음식, 여유로운 시간 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_21",
+        "content": "\"이건 나중에 또 해야지\" 하고 생각한 일이 있었나요?",
+        "category": "reflection",
+        "placeholder": "재미있는 게임, 맛있는 음식 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_22",
+        "content": "오늘 가장 기다려졌던 시간은 언제였나요?",
+        "category": "reflection",
+        "placeholder": "점심시간, 하교시간 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_23",
+        "content": "오늘 내가 해결한 작은 문제는 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "숙제 문제, 친구와의 오해 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_24",
+        "content": "오늘 가장 기대 이상으로 좋았던 일은 무엇인가요?",
+        "category": "reflection",
+        "placeholder": "예상보다 맛있던 음식, 재미있던 수업 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_25",
+        "content": "오늘 하루를 대표하는 단어 하나를 꼽는다면 무엇일까요?",
+        "category": "reflection",
+        "placeholder": "즐거움, 피곤, 평화 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_26",
+        "content": "오늘 내가 누군가를 칭찬해준 일이 있었나요?",
+        "category": "reflection",
+        "placeholder": "친구 칭찬, 가족 칭찬 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_27",
+        "content": "오늘 가장 편안하게 느껴졌던 시간은 언제였나요?",
+        "category": "reflection",
+        "placeholder": "점심시간, 저녁시간 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_28",
+        "content": "오늘 받은 메시지(카톡, 문자 등) 중 가장 반가웠던 것은 무엇인가요?",
+        "category": "reflection",
+        "placeholder": "친구 메시지, 가족 안부 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_29",
+        "content": "오늘 하루, 나 스스로에게 \"수고했어\" 라고 말해주고 싶은 순간은 언제였나요?",
+        "category": "reflection",
+        "placeholder": "어려운 일을 해낸 후, 하루를 마칠 때 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_30",
+        "content": "\"아, 이거구나!\" 하고 무언가를 깨달았던 짧은 순간이 있었나요?",
+        "category": "reflection",
+        "placeholder": "문제 해결, 새로운 발견 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_31",
+        "content": "오늘 하루 중 가장 고마웠던 사람은 누구인가요?",
+        "category": "reflection",
+        "placeholder": "도움을 준 친구, 가족 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_32",
+        "content": "오늘 산 물건 중에 가장 마음에 드는 것은 무엇인가요?",
+        "category": "reflection",
+        "placeholder": "간식, 문구용품 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_33",
+        "content": "TV나 유튜브를 보다가 가장 흥미로웠던 내용은 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "재미있는 영상, 유익한 정보 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_34",
+        "content": "오늘 가장 시원하게 웃었던 순간은 언제였나요?",
+        "category": "reflection",
+        "placeholder": "친구와의 대화, 웃긴 영상 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_35",
+        "content": "오늘 하루, 나에게 힘이 되어준 것은 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "친구의 응원, 좋아하는 음악 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_36",
+        "content": "오늘 내가 가장 자주 했던 말은 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "안녕, 고마워, 피곤해 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_37",
+        "content": "오늘 하루의 BGM을 깐다면 어떤 노래를 선택하고 싶나요?",
+        "category": "reflection",
+        "placeholder": "좋아하는 노래, 기분에 맞는 노래 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_38",
+        "content": "오늘 하루, 가장 기분 좋은 소리는 무엇이었나요? (빗소리, 웃음소리 등)",
+        "category": "reflection",
+        "placeholder": "친구 웃음소리, 좋아하는 노래 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_39",
+        "content": "오늘 하루를 마무리하며 가장 먼저 떠오르는 얼굴은 누구인가요?",
+        "category": "reflection",
+        "placeholder": "가족, 친구, 좋아하는 사람 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_40",
+        "content": "오늘 하루, 나의 기분을 가장 좋게 만들어 준 것은 무엇이었나요?",
+        "category": "reflection",
+        "placeholder": "성취감, 따뜻한 마음, 새로운 발견 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_41",
+        "content": "오늘 하루, 어떤 것에 가장 마음을 빼앗겨 있었나요?",
+        "category": "reflection",
+        "placeholder": "걱정, 기대, 관심사 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_42",
+        "content": "문득 외롭다고 느껴진 순간이 있었다면, 언제였나요?",
+        "category": "reflection",
+        "placeholder": "혼자 있을 때, 이해받지 못할 때 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_43",
+        "content": "오늘 하루, 나는 주로 주는 사람이었나요, 받는 사람이었나요?",
+        "category": "reflection",
+        "placeholder": "도움을 준 일, 도움을 받은 일 등",
+        "order_index": 1
+      },
+      {
+        "id": "q1_44",
+        "content": "오늘 하루, 감사하는 마음과 불평하는 마음 중 어느 쪽이 더 컸나요?",
+        "category": "reflection",
+        "placeholder": "긍정적 vs 부정적 마음의 비율",
+        "order_index": 1
+      }
+    ],
+    "q4": {
+      "id": "q4",
+      "content": "오늘 기도하고 싶은 제목이 있나요?",
+      "category": "prayer",
+      "placeholder": "친구 관계, 가족, 신앙 등",
+      "order_index": 4
+    }
   },
-  {
-    "id": "q2",
-    "content": "하나님이 오늘 내게 어떤 마음을 주신 것 같나요?",
-    "category": "spiritual",
-    "placeholder": "용서하라는 마음, 위로해주시는 느낌 등",
-    "order_index": 2
+  "beginner": {
+    "q2": [
+      {
+        "id": "q2_b_1",
+        "content": "오늘 나를 미소 짓게 했던 일은 무엇이었나요? 하나님이 주신 작은 선물이라고 생각하며 그 순간을 기록해 보세요.",
+        "category": "spiritual",
+        "placeholder": "친구와의 즐거운 대화, 맛있는 음식 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_b_2",
+        "content": "하나님께서 \"괜찮아\" 하고 등을 토닥여주시는 듯한 위로를 느꼈던 순간은 언제였고, 어떤 상황이었나요?",
+        "category": "spiritual",
+        "placeholder": "힘든 일이 있을 때 느낀 평안함 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_b_3",
+        "content": "오늘 '하나님, 정말 감사합니다!' 하고 마음속으로 외치게 만들었던 일은 구체적으로 무엇이었나요?",
+        "category": "spiritual",
+        "placeholder": "예상치 못한 좋은 일, 도움받은 일 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_b_4",
+        "content": "오늘 본 아름다운 풍경(하늘, 나무, 길가의 꽃 등)은 어떠했나요? 그 속에서 발견한 하나님의 솜씨에 대해 적어보세요.",
+        "category": "spiritual",
+        "placeholder": "예쁜 하늘, 아름다운 나무 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_b_5",
+        "content": "오늘 하루 중 가장 따뜻했던 순간은 언제였나요? 그 순간에 하나님께서 나에게 전하고 싶으셨던 메시지는 무엇일까요?",
+        "category": "spiritual",
+        "placeholder": "가족과의 대화, 친구와의 만남, 따뜻한 햇살 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_b_6",
+        "content": "누군가의 따뜻한 말이나 행동을 통해 하나님의 사랑을 느꼈던 경험에 대해 자세히 이야기해 주세요.",
+        "category": "spiritual",
+        "placeholder": "친구의 위로, 가족의 관심 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_b_7",
+        "content": "\"넌 충분히 잘하고 있어!\" 하고 하나님께서 응원해주시는 것 같았던 순간은 언제였나요?",
+        "category": "spiritual",
+        "placeholder": "힘든 일을 해낸 후, 칭찬받을 때 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_b_8",
+        "content": "오늘 하루, 하나님께서 나를 어떻게 위험에서 지켜주시고 필요를 채워주셨는지 구체적으로 적어보세요.",
+        "category": "spiritual",
+        "placeholder": "안전하게 다녀온 것, 필요한 것을 얻은 것 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_b_9",
+        "content": "하나님께서 나의 어떤 모습이나 행동을 보시고 \"참 사랑스럽다\" 하고 기뻐하셨을지 상상하며 기록해 보세요.",
+        "category": "spiritual",
+        "placeholder": "친구를 도운 일, 부모님께 효도한 일 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_b_10",
+        "content": "잠들기 전, 선물 같았던 오늘 하루를 주신 하나님께 어떤 감사의 편지를 남기고 싶으신가요?",
+        "category": "spiritual",
+        "placeholder": "오늘 하루 주셔서 감사해요, 좋은 하루였어요 등",
+        "order_index": 2
+      }
+    ],
+    "q3": {
+      "id": "q3_b",
+      "content": "오늘 감사했던 일 하나만 적어볼까요?",
+      "category": "gratitude",
+      "placeholder": "날씨가 좋아서 기분이 좋았어요, 맛있는 음식을 먹었어요 등",
+      "order_index": 3
+    }
   },
-  {
-    "id": "q3",
-    "content": "오늘 감사했던 일 하나만 적어볼까요?",
-    "category": "gratitude",
-    "placeholder": "날씨가 좋아서 기분이 좋았어요, 맛있는 음식을 먹었어요 등",
-    "order_index": 3
-  },
-  {
-    "id": "q4",
-    "content": "오늘 기도하고 싶은 제목이 있나요?",
-    "category": "prayer",
-    "placeholder": "친구 관계, 가족, 신앙 등",
-    "order_index": 4
+  "normal": {
+    "q2": [
+      {
+        "id": "q2_n_1",
+        "content": "오늘 겪었던 가장 인상 깊은 일을 통해, 하나님께서는 나에게 무엇을 깨닫게 해주시려 했을까요?",
+        "category": "spiritual",
+        "placeholder": "하나님의 뜻, 깨달음, 교훈 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_n_2",
+        "content": "오늘 내 마음을 가장 무겁게 했던 걱정은 무엇이었나요? 그 걱정에 대해 하나님은 뭐라고 말씀하실지 묵상하며 적어보세요.",
+        "category": "spiritual",
+        "placeholder": "걱정거리와 하나님의 위로의 말씀 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_n_3",
+        "content": "중요한 선택의 순간에, 내 생각과 욕심을 넘어 하나님의 뜻을 구하려고 어떻게 노력했나요?",
+        "category": "spiritual",
+        "placeholder": "기도, 말씀 묵상, 지혜 구함 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_n_4",
+        "content": "오늘 나의 실수나 부족함 앞에서 어떤 감정을 느꼈나요? 그 연약함을 통해 일하시는 하나님을 어떻게 신뢰할 수 있을까요?",
+        "category": "spiritual",
+        "placeholder": "연약함을 통한 하나님의 능력 경험 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_n_5",
+        "content": "하나님께서 무언가를 하라고(혹은 멈추라고) 마음을 주셨을 때, 순종하기 어려웠다면 그 이유는 무엇이었을까요?",
+        "category": "spiritual",
+        "placeholder": "순종의 어려움과 하나님의 뜻 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_n_6",
+        "content": "오늘 하루, 나를 통해 하나님의 선한 영향력이 다른 사람에게 어떻게 흘러갔는지 구체적으로 적어보세요.",
+        "category": "spiritual",
+        "placeholder": "하나님의 사랑 전달, 선한 영향력 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_n_7",
+        "content": "요즘 하나님께서 나의 어떤 성품(인내, 온유, 절제 등)을 가장 다루고 계신 것 같나요? 어떤 상황을 통해 그것을 느끼나요?",
+        "category": "spiritual",
+        "placeholder": "성품 변화, 하나님의 훈련 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_n_8",
+        "content": "오늘 나의 시간과 마음을 가장 많이 빼앗았던 것은 무엇인가요? 하나님은 내가 무엇에 가장 집중하기를 원하실지 생각해 보세요.",
+        "category": "spiritual",
+        "placeholder": "하나님의 우선순위, 마음의 중심 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_n_9",
+        "content": "하나님의 도우심을 받아 바꾸고 싶다고 느낀 나의 행동이나 태도는 무엇이었나요? 어떻게 변화하고 싶나요?",
+        "category": "spiritual",
+        "placeholder": "변화의 소망, 하나님의 도우심 등",
+        "order_index": 2
+      },
+      {
+        "id": "q2_n_10",
+        "content": "오늘 하루 전체를 한 편의 이야기로 본다면, 하나님께서 이 이야기를 통해 나에게 주시는 핵심 메시지는 무엇일까요?",
+        "category": "spiritual",
+        "placeholder": "하나님의 메시지, 하루의 의미 등",
+        "order_index": 2
+      }
+    ],
+    "q3": {
+      "id": "q3_n",
+      "content": "오늘 감사했던 일 3가지를 적어보세요.",
+      "category": "gratitude",
+      "placeholder": "날씨가 좋아서 기분이 좋았어요, 맛있는 음식을 먹었어요 등",
+      "order_index": 3
+    }
   }
-]
+}

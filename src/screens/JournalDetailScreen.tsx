@@ -42,7 +42,9 @@ const JournalDetailScreen = () => {
   const insets = useSafeAreaInsets();
 
   const { data: journal, isLoading, isError, error } = useJournalDetailQuery(journalId || '');
-  const { data: questions = [] } = useQuestionsQuery();
+  // 일기 날짜 기준으로 질문 가져오기
+  const journalDate = journal?.date ? new Date(journal.date + 'T00:00:00') : new Date();
+  const { data: questions = [] } = useQuestionsQuery(journalDate);
   const { mutate: deleteJournal } = useDeleteJournalMutation();
   const currentUserId = useAuthStore((state) => state.session?.user?.id);
 
@@ -177,7 +179,7 @@ const JournalDetailScreen = () => {
 
   const handleReportJournal = () => {
     setActionSheetVisible(false);
-    // TODO: 신고 기능 구현
+    // 신고 기능 (미구현)
     Toast.show({
       type: 'info',
       text1: '신고 접수',
@@ -235,7 +237,6 @@ const JournalDetailScreen = () => {
             showAuthor={!isOwnPost}
             authorName={journal.user?.name}
             authorEmail={journal.user?.email}
-            authorRole={journal.user?.role}
             isAuthorAdmin={journal.user?.is_admin}
           />
         </View>
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing[4],
   },
   journalContentText: {
-    ...fontStyles['lg-normal'],
+    ...fontStyles['base-normal'],
     color: colors['dark-grey-02'],
     paddingHorizontal: spacing[4],
     paddingTop: spacing[4],

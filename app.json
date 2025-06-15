@@ -4,6 +4,8 @@
     "slug": "always-walk-with-you",
     "scheme": "alwayswalkwithyouauth",
     "version": "1.0.0",
+    "description": "함께 쓰는 영성일기, 함께 걷는 믿음의 여정",
+    "keywords": ["영성일기", "신앙", "감정기록", "일기", "기독교", "묵상"],
     "entryPoint": "./src/app/App.tsx",
     "web": {
       "favicon": "./src/assets/images/icon.png"
@@ -44,8 +46,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cccbusan.alwayswalkwithyou",
+      "statusBar": {
+        "style": "dark",
+        "backgroundColor": "#ffffff"
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "UIStatusBarStyle": "UIStatusBarStyleDefault",
+        "UIViewControllerBasedStatusBarAppearance": false,
         "CFBundleURLTypes": [
           {
             "CFBundleURLName": "google-oauth",
@@ -69,10 +77,11 @@
         "backgroundColor": "#2584F0"
       },
       "package": "com.cccbusan.alwayswalkwithyou",
-      "versionCode": 4,
+      "versionCode": 5,
       "statusBar": {
         "backgroundColor": "#ffffff"
       },
+      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"],
       "intentFilters": [
         {
           "action": "VIEW",

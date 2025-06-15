@@ -55,7 +55,7 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
       if (initialSession) {
         const { data: userProfile, error: profileError } = await supabase
           .from('users')
-          .select('id, name, campus, student_id, role')
+          .select('id, name')
           .eq('id', initialSession.user.id)
           .single();
 
@@ -74,12 +74,7 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
           });
         }
 
-        const isProfileComplete =
-          userProfile &&
-          userProfile.name &&
-          userProfile.campus &&
-          userProfile.student_id &&
-          userProfile.role;
+        const isProfileComplete = userProfile && userProfile.name;
         set({
           session: initialSession,
           user: initialSession.user,
@@ -119,7 +114,7 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
     if (session && user) {
       supabase
         .from('users')
-        .select('id, name, campus, student_id, role')
+        .select('id, name')
         .eq('id', user.id)
         .single()
         .then(({ data: userProfile, error: profileError }) => {
@@ -135,12 +130,7 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
               visibilityTime: 3000,
             });
           }
-          const isProfileComplete =
-            userProfile &&
-            userProfile.name &&
-            userProfile.campus &&
-            userProfile.student_id &&
-            userProfile.role;
+          const isProfileComplete = userProfile && userProfile.name;
           set({
             session,
             user,

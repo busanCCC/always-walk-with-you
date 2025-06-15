@@ -9,7 +9,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import theme from '@/constants/theme';
 import { supabase } from '@/utils/supabaseClient';
@@ -27,14 +27,6 @@ type ProfileSetupScreenNavigationProp = NativeStackNavigationProp<
   'ProfileSetup'
 >;
 
-const ROLES = [
-  { label: '역할을 선택해주세요', value: null },
-  { label: '순장', value: 'leader' },
-  { label: '순원', value: 'member' },
-  { label: '간사', value: 'staff' },
-  { label: '외부인', value: 'guest' },
-];
-
 export default function ProfileSetupScreen() {
   const user = useAuthStore((state) => state.user);
   const profileCompleted = useAuthStore((state) => state.profileCompleted);
@@ -43,9 +35,6 @@ export default function ProfileSetupScreen() {
   const navigation = useNavigation<ProfileSetupScreenNavigationProp>();
 
   const [name, setName] = useState('');
-  const [campus, setCampus] = useState('');
-  const [studentId, setStudentId] = useState('');
-  const [role, setRole] = useState<string | null>(ROLES[0].value);
   const [loading, setLoading] = useState(false);
   const [alertModal, setAlertModal] = useState<{
     visible: boolean;
@@ -81,8 +70,8 @@ export default function ProfileSetupScreen() {
       showAlert('오류', '사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
       return;
     }
-    if (!name || !campus || !studentId || !role) {
-      showAlert('정보 입력 필요', '이름, 캠퍼스, 학번, 역할은 필수 항목입니다.');
+    if (!name) {
+      showAlert('정보 입력 필요', '닉네임은 필수 항목입니다.');
       return;
     }
 
@@ -96,10 +85,7 @@ export default function ProfileSetupScreen() {
             id: user.id,
             name,
             email,
-            campus,
-            student_id: studentId,
             profile_img: null,
-            role: role,
             updated_at: new Date().toISOString(),
           },
           {
@@ -153,41 +139,11 @@ export default function ProfileSetupScreen() {
           <View style={styles.formContainer}>
             <TextInput
               style={styles.input}
-              placeholder="이름"
+              placeholder="닉네임"
               value={name}
               onChangeText={setName}
               placeholderTextColor={placeholderTextColor}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="캠퍼스"
-              value={campus}
-              onChangeText={setCampus}
-              placeholderTextColor={placeholderTextColor}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="학번"
-              value={studentId}
-              onChangeText={setStudentId}
-              keyboardType="number-pad"
-              placeholderTextColor={placeholderTextColor}
-            />
-
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={role}
-                onValueChange={(itemValue: string | null) => setRole(itemValue)}
-                style={[
-                  styles.picker,
-                  { color: role === null ? placeholderTextColor : defaultTextColor },
-                ]}
-                itemStyle={styles.pickerItem}>
-                {ROLES.map((r) => (
-                  <Picker.Item key={r.value || 'placeholder'} label={r.label} value={r.value} />
-                ))}
-              </Picker>
-            </View>
 
             {/* <TextInput
               style={styles.input}
@@ -210,7 +166,7 @@ export default function ProfileSetupScreen() {
           <StyledButton
             title={loading ? '저장 중...' : '확인'}
             onPress={handleSaveProfile}
-            disabled={loading || !name || !campus || !studentId || !role}
+            disabled={loading || !name}
             loading={loading}
           />
         </View>

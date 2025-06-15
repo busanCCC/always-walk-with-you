@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     color: theme.colors['grey-01'],
   },
   newBadge: {
-    backgroundColor: theme.colors.secondary.DEFAULT,
+    backgroundColor: theme.colors.primary.DEFAULT,
     paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[0.5],
     borderRadius: 16,

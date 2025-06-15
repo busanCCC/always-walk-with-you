@@ -22,7 +22,6 @@ export interface GroupInvite {
     id: string;
     name: string;
     description: string;
-    campus?: string;
   };
 }
 
@@ -88,7 +87,6 @@ export const fetchUserGroups = async (userId: string): Promise<UserGroup[]> => {
 export const createGroup = async (groupData: CreateGroupPayload) => {
   const { error: groupError } = await supabase.from('groups').insert({
     name: groupData.name,
-    campus: groupData.campus,
     description: groupData.description,
   });
   if (groupError) {
@@ -171,7 +169,6 @@ export const updateGroup = async (
   const updatePayload = {
     name: groupData.name,
     description: groupData.description,
-    ...(groupData.campus && { campus: groupData.campus }),
     updated_at: new Date().toISOString(),
   };
 
@@ -349,7 +346,7 @@ export const getGroupByInviteToken = async (token: string): Promise<GroupInvite 
     // 2단계: 그룹 정보 별도 조회
     const { data: groupData, error: groupError } = await supabase
       .from('groups')
-      .select('id, name, description, campus')
+      .select('id, name, description')
       .eq('id', inviteData.group_id)
       .single();
 

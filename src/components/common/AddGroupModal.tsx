@@ -20,7 +20,6 @@ interface AddGroupModalProps {
 
 const AddGroupModal: React.FC<AddGroupModalProps> = ({ visible, onClose, onSuccess }) => {
   const [groupName, setGroupName] = useState('');
-  const [campus, setCampus] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +37,6 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ visible, onClose, onSucce
       await createGroupMutation.mutateAsync({
         name: groupName.trim(),
         description: description.trim(),
-        campus: campus.trim() || undefined,
       });
 
       resetForm();
@@ -53,7 +51,6 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ visible, onClose, onSucce
 
   const resetForm = () => {
     setGroupName('');
-    setCampus('');
     setDescription('');
     setError(null);
   };
@@ -71,10 +68,11 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ visible, onClose, onSucce
             <Text style={styles.inputLabel}>순 이름</Text>
             <TextInput
               style={styles.input}
-              placeholder="예) 인제대학교 캠퍼스 대순"
+              // placeholder=""
               value={groupName}
               onChangeText={setGroupName}
               autoCapitalize="none"
+              autoFocus={true}
             />
           </View>
 
@@ -82,20 +80,9 @@ const AddGroupModal: React.FC<AddGroupModalProps> = ({ visible, onClose, onSucce
             <Text style={styles.inputLabel}>순 설명</Text>
             <TextInput
               style={styles.input}
-              placeholder="예) 인제대학교 순장 순원들 모임"
+              // placeholder=""
               value={description}
               onChangeText={setDescription}
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>캠퍼스 (선택)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="예) 인제대학교"
-              value={campus}
-              onChangeText={setCampus}
               autoCapitalize="none"
             />
           </View>
