@@ -5,7 +5,14 @@
     "scheme": "alwayswalkwithyouauth",
     "version": "1.0.0",
     "description": "함께 쓰는 영성일기, 함께 걷는 믿음의 여정",
-    "keywords": ["영성일기", "신앙", "감정기록", "일기", "기독교", "묵상"],
+    "keywords": [
+      "영성일기",
+      "신앙",
+      "감정기록",
+      "일기",
+      "기독교",
+      "묵상"
+    ],
     "entryPoint": "./src/app/App.tsx",
     "web": {
       "favicon": "./src/assets/images/icon.png"
@@ -32,7 +39,8 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.363398054005-ehj5ic5g55jvk038ltqo65crooto3u5d"
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "splash": {
       "backgroundColor": "#2584F0",
@@ -42,7 +50,9 @@
     "orientation": "portrait",
     "icon": "./src/assets/images/icon.png",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cccbusan.alwayswalkwithyou",
@@ -63,12 +73,16 @@
           },
           {
             "CFBundleURLName": "custom-auth",
-            "CFBundleURLSchemes": ["alwayswalkwithyouauth"]
+            "CFBundleURLSchemes": [
+              "alwayswalkwithyouauth"
+            ]
           }
         ]
       },
       "entitlements": {
-        "com.apple.developer.applesignin": ["Default"]
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
       }
     },
     "android": {
@@ -81,7 +95,10 @@
       "statusBar": {
         "backgroundColor": "#ffffff"
       },
-      "permissions": ["INTERNET", "ACCESS_NETWORK_STATE"],
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -92,7 +109,10 @@
               "host": "yrklwyajimcbotusopye.supabase.co"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },

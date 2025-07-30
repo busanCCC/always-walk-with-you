@@ -18,10 +18,14 @@ import { toastConfig } from '@/components/common/CustomToast';
 import { getGroupByInviteToken, joinGroupByInvite } from '@/apis/groupApi';
 import { fetchEmotions } from '@/apis/journalApi';
 import questionsData from '@/assets/data/questions.json';
+import { syncEmotionsFromServer, convertToEmotions } from '@/utils/emotionStorage';
 import { NavigationUtils } from '@/utils/NavigationService';
 import AlertModal from '@/components/common/AlertModal';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { supabase } from '@/utils/supabaseClient';
+import { database } from '@/db/database';
+import { NetworkProvider } from '@/utils/networkManager';
+import { uploadQueueManager } from '@/utils/uploadQueueManager';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -68,6 +72,18 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        // 1. 데이터베이스 초기화 (로컬 DB)
+        console.log('🗄️ 로컬 데이터베이스 초기화 중...');
+        await database.initialize();
+
+        // 2. 업로드 큐 네트워크 리스너 초기화 (데이터베이스 준비 후)
+        console.log('📤 업로드 큐 네트워크 리스너 초기화 중...');
+        uploadQueueManager.initializeNetworkListener();
+
+        // 3. 서버와 동기화 (온라인 상태일 때)
+        console.log('📡 서버 동기화 시작...');
+        await uploadQueueManager.syncWithServer();
+
         await initializeAuth();
 
         // Google 로그인 초기화는 별도로 처리 (실패해도 앱 시작을 막지 않음)
@@ -79,14 +95,24 @@ export default function App() {
 
         // 핵심 데이터들 미리 로드 (백그라운드에서 실행)
         try {
-          // 1. 감정 데이터 로드 (Supabase API 호출)
-          const emotionsData = await fetchEmotions();
+          // 1. 감정 데이터 로컬 동기화 (Supabase -> 로컬 저장소)
+          const localEmotions = await syncEmotionsFromServer();
+          const emotionsData = convertToEmotions(localEmotions);
           queryClient.setQueryData(['emotions'], emotionsData);
 
           // 2. 질문 데이터 캐시 (로컬 JSON)
           queryClient.setQueryData(['questions'], questionsData);
         } catch (error) {
           console.warn('핵심 데이터 미리 로딩 실패:', error);
+
+          // 감정 데이터 로딩 실패 시 서버에서 직접 가져오기 (폴백)
+          try {
+            console.log('🔄 감정 데이터 로딩 실패: 서버에서 직접 가져오는중...');
+            const fallbackEmotions = await fetchEmotions();
+            queryClient.setQueryData(['emotions'], fallbackEmotions);
+          } catch (fallbackError) {
+            console.error('❌ 감정 데이터 로딩 실패:', fallbackError);
+          }
         }
       } catch (error) {
         console.error('App initialization error:', error);
@@ -328,16 +354,18 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <SafeAreaProvider>
-            <StatusBar barStyle="dark-content" backgroundColor="white" translucent={false} />
-            <BottomSheetModalProvider>
-              <View style={styles.appContainer} onLayout={onLayoutRootView}>
-                <AppNavigator />
-              </View>
-            </BottomSheetModalProvider>
-          </SafeAreaProvider>
-        </QueryClientProvider>
+        <NetworkProvider>
+          <QueryClientProvider client={queryClient}>
+            <SafeAreaProvider>
+              <StatusBar barStyle="dark-content" backgroundColor="white" translucent={false} />
+              <BottomSheetModalProvider>
+                <View style={styles.appContainer} onLayout={onLayoutRootView}>
+                  <AppNavigator />
+                </View>
+              </BottomSheetModalProvider>
+            </SafeAreaProvider>
+          </QueryClientProvider>
+        </NetworkProvider>
 
         {/* Custom Alert Modal */}
         <AlertModal

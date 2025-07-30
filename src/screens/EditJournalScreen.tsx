@@ -19,6 +19,9 @@ import GroupShareBottomSheet, {
 } from '@/components/common/GroupShareBottomSheet';
 import ConfirmationModal from '@/components/common/ConfirmationModal';
 import AlertModal from '@/components/common/AlertModal';
+import { localJournalApi } from '@/apis/localJournalApiDrizzle';
+import { uploadQueueManager } from '@/utils/uploadQueueManager';
+import { useNetwork } from '@/utils/networkManager';
 
 type EditJournalScreenRouteProp = RouteProp<RootStackParamList, 'EditJournal'>;
 type EditJournalScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'EditJournal'>;
@@ -37,6 +40,16 @@ const EditJournalScreen = () => {
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [showExitModal, setShowExitModal] = useState(false);
   const [isForceExit, setIsForceExit] = useState(false);
+  const [isSaveSuccess, setIsSaveSuccess] = useState(false); // 저장 성공 상태 추가
+
+  // 로컬 저널 상태
+  const [localJournal, setLocalJournal] = useState<any>(null);
+  const [isLoadingJournal, setIsLoadingJournal] = useState(true);
+  const [isUpdatingJournal, setIsUpdatingJournal] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // 네트워크 상태
+  const { isOnline } = useNetwork();
 
   // AlertModal state
   const [alertModal, setAlertModal] = useState({
@@ -45,18 +58,7 @@ const EditJournalScreen = () => {
     message: '',
   });
 
-  // 일기 데이터 조회
-  const {
-    data: journal,
-    isLoading: isJournalLoading,
-    error: journalError,
-  } = useQuery({
-    queryKey: ['journal', journalId],
-    queryFn: () => fetchJournalById(journalId),
-    enabled: !!journalId,
-  });
-
-  // 감정 데이터 조회
+  // 감정 데이터 조회 (React Query 유지)
   const {
     data: emotions,
     isLoading: isEmotionsLoading,
@@ -67,13 +69,90 @@ const EditJournalScreen = () => {
   });
 
   // 질문 데이터 조회 (일기 날짜 기준)
-  const journalDate = journal?.date ? new Date(journal.date + 'T00:00:00') : new Date();
+  const journalDate = localJournal?.date ? new Date(localJournal.date + 'T00:00:00') : new Date();
   const { data: questions = [] } = useQuestionsQuery(journalDate);
 
-  // 일기 수정 mutation
+  // 일기 수정 mutation (기존 코드 - 필요시 폴백용)
   const updateMutation = useUpdateJournalMutation();
 
-  // 뮤테이션 성공 처리
+  // 로컬 저널 로드
+  useEffect(() => {
+    const loadLocalJournal = async () => {
+      if (!journalId) return;
+
+      setIsLoadingJournal(true);
+      setLoadError(null);
+
+      try {
+        // 먼저 로컬 DB에서 조회 시도 (localId 또는 serverId 둘 다 가능)
+        let journal;
+
+        try {
+          // journalId가 localId인 경우
+          journal = await localJournalApi.getJournalById(journalId);
+        } catch (error) {
+          // journalId가 serverId인 경우 - 로컬 DB에서 serverId로 찾기
+          // 현재 localJournalApi에 serverId로 찾는 기능이 없으므로 서버에서 가져오기
+          console.log('Local journal not found, trying server...');
+          const serverJournal = await fetchJournalById(journalId);
+
+          // 서버에서 가져온 저널을 로컬 형식으로 변환
+          journal = {
+            localId: `server_${journalId}`,
+            serverId: journalId,
+            userId: serverJournal.user_id,
+            date: serverJournal.date,
+            mode: serverJournal.mode,
+            emotionId: serverJournal.emotion_id,
+            sharedGroups: JSON.stringify(serverJournal.shared_groups || []),
+            syncStatus: 'synced',
+            createdLocallyAt: serverJournal.created_at,
+            lastModifiedAt: serverJournal.updated_at,
+            isShared: (serverJournal.shared_groups || []).length > 0,
+            entries: serverJournal.journal_entries || [],
+          };
+        }
+
+        setLocalJournal(journal);
+
+        // 초기 상태 설정
+        if (journal.emotionId && emotions) {
+          const emotion = emotions.find((e) => e.id === journal.emotionId);
+          setSelectedEmotion(emotion || null);
+        }
+
+        if (journal.mode === 'free_writing' && journal.entries?.length > 0) {
+          const firstEntry = journal.entries[0];
+          // 로컬 저널과 서버 저널 모두 지원
+          const content = (firstEntry as any).textContent || (firstEntry as any).text_content || '';
+          setFreeWriteContent(content);
+        } else if (journal.mode === 'prompt_based' && journal.entries?.length > 0) {
+          const answers = journal.entries
+            .filter((entry: any) => entry.entryType === 'answer' || entry.entry_type === 'answer')
+            .map((entry: any) => ({
+              answer: entry.textContent || entry.text_content || '',
+              order: entry.entryOrder || entry.entry_order || 0,
+            }))
+            .sort((a, b) => a.order - b.order);
+          setPromptAnswers(answers);
+        }
+
+        if (journal.sharedGroups) {
+          const groups = JSON.parse(journal.sharedGroups);
+          setSelectedGroupIds(groups || []);
+        }
+      } catch (error) {
+        console.error('Failed to load journal:', error);
+        setLoadError(error instanceof Error ? error.message : '저널을 불러올 수 없습니다.');
+      } finally {
+        setIsLoadingJournal(false);
+      }
+    };
+
+    loadLocalJournal();
+  }, [journalId, emotions]);
+
+  // 뮤테이션 성공 처리 (현재는 사용하지 않음 - 로컬 저장 방식 사용)
   React.useEffect(() => {
     if (updateMutation.isSuccess) {
       Toast.show({
@@ -82,6 +161,7 @@ const EditJournalScreen = () => {
         text2: '일기가 성공적으로 수정되었습니다.',
         visibilityTime: 2000,
       });
+      setIsSaveSuccess(true);
       setIsForceExit(true);
       navigation.goBack();
     }
@@ -104,7 +184,13 @@ const EditJournalScreen = () => {
   useFocusEffect(
     useCallback(() => {
       const subscription = navigation.addListener('beforeRemove', (e) => {
-        if (!hasChanges() || isForceExit || updateMutation.isPending) {
+        // 저장 완료, 강제 나가기, 저장 중이면 그냥 나가기
+        if (isSaveSuccess || isForceExit || isUpdatingJournal) {
+          return;
+        }
+
+        // 변경사항 없으면 그냥 나가기
+        if (!hasChanges()) {
           return;
         }
 
@@ -115,13 +201,14 @@ const EditJournalScreen = () => {
       return subscription;
     }, [
       navigation,
-      journal,
+      localJournal,
       selectedEmotion,
       freeWriteContent,
       promptAnswers,
       selectedGroupIds,
       isForceExit,
-      updateMutation.isPending,
+      isUpdatingJournal,
+      isSaveSuccess,
     ])
   );
 
@@ -135,7 +222,14 @@ const EditJournalScreen = () => {
           headerLeft={
             <TouchableOpacity
               onPress={() => {
-                if (hasChanges() && !isForceExit && !updateMutation.isPending) {
+                // 저장 완료, 강제 나가기, 저장 중이면 그냥 나가기
+                if (isSaveSuccess || isForceExit || isUpdatingJournal) {
+                  navigation.goBack();
+                  return;
+                }
+
+                // 변경사항 있으면 확인 다이얼로그
+                if (hasChanges()) {
                   setShowExitModal(true);
                 } else {
                   navigation.goBack();
@@ -149,64 +243,47 @@ const EditJournalScreen = () => {
         />
       ),
     });
-  }, [navigation, isForceExit, updateMutation.isPending]);
-
-  // 초기 데이터 설정
-  useEffect(() => {
-    if (journal) {
-      setSelectedEmotion(journal.emotion || null);
-      setSelectedGroupIds(journal.shared_groups?.map((group) => group.id) || []);
-
-      if (journal.mode === 'free_writing') {
-        const generalEntry = journal.journal_entries?.find(
-          (entry) => entry.entry_type === 'general'
-        );
-        setFreeWriteContent(generalEntry?.text_content || '');
-      } else if (journal.mode === 'prompt_based') {
-        const answerEntries =
-          journal.journal_entries
-            ?.filter((entry) => entry.entry_type === 'answer')
-            .sort((a, b) => a.entry_order - b.entry_order)
-            .map((entry) => ({
-              answer: entry.text_content || '',
-              order: entry.entry_order,
-            })) || [];
-        setPromptAnswers(answerEntries);
-      }
-    }
-  }, [journal]);
+  }, [navigation, isForceExit, isUpdatingJournal, isSaveSuccess]);
 
   const hasChanges = () => {
-    if (!journal) return false;
+    if (!localJournal) return false;
 
     // 감정 변경 확인
-    if (selectedEmotion?.id !== journal.emotion?.id) return true;
+    const originalEmotionId = localJournal.emotionId;
+    if (selectedEmotion?.id !== originalEmotionId) return true;
 
     // 순 공유 변경 확인
-    const originalGroupIds = journal.shared_groups || [];
+    const originalGroupIds = localJournal.sharedGroups ? JSON.parse(localJournal.sharedGroups) : [];
     if (
       selectedGroupIds.length !== originalGroupIds.length ||
-      !selectedGroupIds.every((id) => originalGroupIds.some((group) => group.id === id))
+      !selectedGroupIds.every((id) => originalGroupIds.includes(id))
     ) {
       return true;
     }
 
     // 내용 변경 확인
-    if (journal.mode === 'free_writing') {
+    if (localJournal.mode === 'free_writing') {
+      const originalEntry = localJournal.entries?.find(
+        (entry: any) => entry.entryType === 'general' || entry.entry_type === 'general'
+      );
       const originalContent =
-        journal.journal_entries?.find((entry) => entry.entry_type === 'general')?.text_content ||
-        '';
+        (originalEntry as any)?.textContent || (originalEntry as any)?.text_content || '';
       return freeWriteContent !== originalContent;
-    } else if (journal.mode === 'prompt_based') {
-      const originalAnswers = journal.journal_entries
-        ?.filter((entry) => entry.entry_type === 'answer')
-        .sort((a, b) => a.entry_order - b.entry_order);
+    } else if (localJournal.mode === 'prompt_based') {
+      const originalAnswers = localJournal.entries
+        ?.filter((entry: any) => entry.entryType === 'answer' || entry.entry_type === 'answer')
+        .sort(
+          (a: any, b: any) =>
+            (a.entryOrder || a.entry_order || 0) - (b.entryOrder || b.entry_order || 0)
+        );
 
       if (originalAnswers?.length !== promptAnswers.length) return true;
 
-      return promptAnswers.some(
-        (answer, index) => answer.answer !== (originalAnswers[index]?.text_content || '')
-      );
+      return promptAnswers.some((answer, index) => {
+        const originalEntry = originalAnswers?.[index] as any;
+        const originalText = originalEntry?.textContent || originalEntry?.text_content || '';
+        return answer.answer !== originalText;
+      });
     }
 
     return false;
@@ -229,18 +306,18 @@ const EditJournalScreen = () => {
     setAlertModal({ visible: false, title: '', message: '' });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedEmotion) {
       showAlert('알림', '감정을 선택해주세요.');
       return;
     }
 
-    if (journal?.mode === 'free_writing' && !freeWriteContent.trim()) {
+    if (localJournal?.mode === 'free_writing' && !freeWriteContent.trim()) {
       showAlert('알림', '일기 내용을 입력해주세요.');
       return;
     }
 
-    if (journal?.mode === 'prompt_based') {
+    if (localJournal?.mode === 'prompt_based') {
       const hasEmptyAnswer = promptAnswers.some((answer) => !answer.answer.trim());
       if (hasEmptyAnswer) {
         showAlert('알림', '모든 질문에 답변해주세요.');
@@ -248,28 +325,137 @@ const EditJournalScreen = () => {
       }
     }
 
-    const updateData: {
-      emotion_id?: string;
-      content?: string;
-      answers?: Array<{ answer: string; order: number }>;
-      shared_groups?: string[];
-    } = {
-      emotion_id: selectedEmotion.id,
-      shared_groups: selectedGroupIds,
-    };
+    setIsUpdatingJournal(true);
 
-    if (journal?.mode === 'free_writing') {
-      updateData.content = freeWriteContent;
-    } else if (journal?.mode === 'prompt_based') {
-      updateData.answers = promptAnswers;
+    try {
+      // 🗄️ 로컬 DB에서 저널 업데이트
+      const updateData = {
+        mode: localJournal.mode,
+        emotion_id: selectedEmotion.id,
+        shared_groups: selectedGroupIds,
+        ...(localJournal.mode === 'free_writing'
+          ? { content: freeWriteContent }
+          : { answers: promptAnswers }),
+      };
+
+      const updatedJournal = await localJournalApi.updateJournal(localJournal.localId, updateData);
+      console.log('📝 Local journal updated:', updatedJournal.localId);
+
+      // 📤 그룹 공유 처리
+      const originalGroupIds = localJournal.sharedGroups
+        ? JSON.parse(localJournal.sharedGroups)
+        : [];
+      const hasGroupsChanged =
+        selectedGroupIds.length !== originalGroupIds.length ||
+        !selectedGroupIds.every((id) => originalGroupIds.includes(id));
+
+      if (selectedGroupIds.length > 0) {
+        // 서버 API 호환 형식으로 데이터 변환
+        const serverData = {
+          user_id: localJournal.userId,
+          date: localJournal.date,
+          mode: localJournal.mode,
+          emotion_id: selectedEmotion.id,
+          shared_groups: selectedGroupIds,
+          ...(localJournal.mode === 'free_writing'
+            ? { content: freeWriteContent }
+            : { answers: promptAnswers }),
+        };
+
+        if (updatedJournal.serverId) {
+          // 기존 서버 저널 업데이트
+          await uploadQueueManager.addToQueue('update_journal', localJournal.localId, serverData);
+        } else {
+          // 로컬 전용 저널을 서버에 새로 생성
+          await uploadQueueManager.addToQueue('create_journal', localJournal.localId, serverData);
+        }
+
+        if (isOnline) {
+          Toast.show({
+            type: 'success',
+            text1: '수정 완료',
+            text2: '일기가 수정되고 그룹에 공유되었습니다.',
+            visibilityTime: 2000,
+          });
+        } else {
+          Toast.show({
+            type: 'success',
+            text1: '수정 완료',
+            text2: '일기가 수정되었습니다. 온라인 상태일 때 그룹에 공유됩니다.',
+            visibilityTime: 3000,
+          });
+        }
+      } else if (hasGroupsChanged && selectedGroupIds.length === 0 && originalGroupIds.length > 0) {
+        // 그룹 공유 취소 처리
+        if (updatedJournal.serverId) {
+          // 서버에 이미 업로드된 저널 - 서버에서 공유 취소
+          await uploadQueueManager.addToQueue('delete_journal', localJournal.localId, {});
+
+          if (isOnline) {
+            Toast.show({
+              type: 'success',
+              text1: '수정 완료',
+              text2: '일기가 수정되고 그룹 공유가 취소되었습니다.',
+              visibilityTime: 2000,
+            });
+          } else {
+            Toast.show({
+              type: 'success',
+              text1: '수정 완료',
+              text2: '일기가 수정되었습니다. 온라인 상태일 때 그룹 공유가 취소됩니다.',
+              visibilityTime: 3000,
+            });
+          }
+        } else {
+          // 아직 서버에 업로드되지 않은 저널 - 업로드 큐에서 제거
+          const removedCount = await uploadQueueManager.removeQueueItemsForJournal(
+            localJournal.localId
+          );
+
+          if (removedCount > 0) {
+            console.log(`🔄 로컬 저널의 업로드 큐 ${removedCount}개 아이템 제거됨`);
+          }
+
+          Toast.show({
+            type: 'success',
+            text1: '수정 완료',
+            text2: '일기가 수정되고 그룹 공유가 취소되었습니다.',
+            visibilityTime: 2000,
+          });
+        }
+      } else {
+        // 로컬 전용 수정 또는 그룹 변경 없음
+        Toast.show({
+          type: 'success',
+          text1: '수정 완료',
+          text2: '일기가 수정되었습니다.',
+          visibilityTime: 2000,
+        });
+      }
+
+      // React Query 캐시 무효화 (화면 즉시 반영)
+      queryClient.invalidateQueries({
+        queryKey: ['localJournals'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['emotions'],
+      });
+
+      // 저장 성공 후 강제 나가기 설정
+      setIsSaveSuccess(true);
+      setIsForceExit(true);
+      navigation.goBack();
+    } catch (error) {
+      console.error('Update journal error:', error);
+      Toast.show({
+        type: 'error',
+        text1: '수정 실패',
+        text2: '일기 수정 중 오류가 발생했습니다.',
+        visibilityTime: 3000,
+      });
+    } finally {
+      setIsUpdatingJournal(false);
     }
-
-    updateMutation.mutate({
-      journalId,
-      userId: user!.id,
-      updateData,
-      originalSharedGroups: journal?.shared_groups?.map((group) => group.id) || [],
-    });
   };
 
   const handleSelectEmotion = (emotion: Emotion) => {
@@ -286,7 +472,7 @@ const EditJournalScreen = () => {
     setSelectedGroupIds(groupIds);
   };
 
-  if (isJournalLoading || isEmotionsLoading) {
+  if (isLoadingJournal || isEmotionsLoading) {
     return (
       <View style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary.DEFAULT} />
@@ -294,10 +480,10 @@ const EditJournalScreen = () => {
     );
   }
 
-  if (journalError || emotionsError || !journal) {
+  if (loadError || emotionsError || !localJournal) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text style={styles.errorText}>일기 정보를 불러올 수 없습니다.</Text>
+        <Text style={styles.errorText}>{loadError || '일기 정보를 불러올 수 없습니다.'}</Text>
       </View>
     );
   }
@@ -305,9 +491,9 @@ const EditJournalScreen = () => {
   return (
     <>
       <JournalEditorForm
-        date={new Date(journal.date)}
+        date={new Date(localJournal.date)}
         selectedEmotion={selectedEmotion}
-        mode={journal.mode}
+        mode={localJournal.mode}
         freeWriteContent={freeWriteContent}
         onFreeWriteContentChange={setFreeWriteContent}
         promptAnswers={promptAnswers}
@@ -315,16 +501,16 @@ const EditJournalScreen = () => {
         questions={questions}
         onSelectEmotion={handleSelectEmotion}
         onSave={handleSave}
-        isSaving={updateMutation.isPending}
+        isSaving={isUpdatingJournal}
         saveButtonText="수정하기"
         showGroupShare={true}
         selectedGroupIds={selectedGroupIds}
         onShareToGroup={() => groupShareBottomSheetRef.current?.present()}
         onSelectGroups={handleSelectGroups}
-        disabled={updateMutation.isPending}
+        disabled={isUpdatingJournal}
         leftFooterContent={
           <Text style={styles.modeText}>
-            {journal.mode === 'free_writing' ? '자유 작성' : '질문 기반 작성'}
+            {localJournal.mode === 'free_writing' ? '자유 작성' : '질문 기반 작성'}
           </Text>
         }
       />

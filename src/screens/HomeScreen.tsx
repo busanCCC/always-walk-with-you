@@ -207,6 +207,7 @@ const HomeScreen = () => {
           </View>
         </View>
 
+        {/* 
         <View style={styles.prayerSection}>
           <Text style={styles.sectionTitle}>함께 기도할 제목들</Text>
 
@@ -221,7 +222,6 @@ const HomeScreen = () => {
             </Text>
           </View>
 
-          {/* 기도 제목 카드 2 */}
           <View style={styles.prayerCard}>
             <View style={styles.prayerCardHeader}>
               <Text style={styles.prayerCardName}>부산대학교 장전캠퍼스</Text>
@@ -233,7 +233,6 @@ const HomeScreen = () => {
             </Text>
           </View>
 
-          {/* 기도 제목 카드 3 */}
           <View style={styles.prayerCard}>
             <View style={styles.prayerCardHeader}>
               <Text style={styles.prayerCardName}>부산대학교 밀양캠</Text>
@@ -244,7 +243,7 @@ const HomeScreen = () => {
               신입생들이 CCC에 잘 접붙임 될 수 있길
             </Text>
           </View>
-        </View>
+        </View> */}
       </ScrollView>
       <AlertModal
         visible={alertModal.visible}

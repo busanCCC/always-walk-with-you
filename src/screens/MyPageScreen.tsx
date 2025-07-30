@@ -16,6 +16,7 @@ import { colors, spacing, fontStyles } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useQuestionStore } from '@/store/questionStore';
 import { supabase } from '@/utils/supabaseClient';
+import { useNetwork } from '@/utils/networkManager';
 
 import GroupModal from '@/components/common/GroupModal';
 import CustomHeader from '@/components/common/CustomHeader';
@@ -33,6 +34,7 @@ const MyPageScreen = () => {
   const navigation = useNavigation();
   const { user: authUser, signOut } = useAuthStore();
   const { difficulty, setDifficulty } = useQuestionStore();
+  const { isOnline } = useNetwork();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -72,6 +74,26 @@ const MyPageScreen = () => {
     const fetchUserProfile = async () => {
       if (authUser?.id) {
         setLoading(true);
+
+        // 오프라인이면 서버 호출 없이 기본 정보만 사용
+        if (!isOnline) {
+          console.log('🔄 오프라인 모드: 로컬 사용자 정보 사용');
+          const localProfile: UserProfile = {
+            id: authUser.id,
+            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || '사용자',
+            email: authUser.email || null,
+            profile_img: authUser.user_metadata?.avatar_url || null,
+          };
+
+          setUserProfile(localProfile);
+          setEditData({
+            name: localProfile.name || '',
+          });
+          setLoading(false);
+          return;
+        }
+
+        // 온라인이면 서버에서 최신 정보 가져오기
         try {
           const { data, error } = await supabase
             .from('users')
@@ -101,7 +123,7 @@ const MyPageScreen = () => {
     };
 
     fetchUserProfile();
-  }, [authUser]);
+  }, [authUser, isOnline]);
 
   const showAlert = (title: string, message: string) => {
     setAlertModal({ visible: true, title, message });
@@ -210,6 +232,12 @@ const MyPageScreen = () => {
       onPress: handleEditProfile,
     },
     {
+      id: 'queue-management',
+      title: '업로드 큐 관리',
+      icon: 'cloud-upload-outline',
+      onPress: () => navigation.navigate('QueueManagement' as never),
+    },
+    {
       id: 'difficulty-settings',
       title: '질문 유형 설정',
       icon: 'help-circle-outline',
@@ -265,6 +293,13 @@ const MyPageScreen = () => {
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}>
+          {/* 오프라인 상태 알림 */}
+          {!isOnline && (
+            <View style={styles.offlineNotice}>
+              <Text style={styles.offlineNoticeText}>오프라인 모드 - 일부 기능이 제한됩니다</Text>
+            </View>
+          )}
+
           {/* 프로필 섹션 */}
           <View style={styles.profileSection}>
             <View style={styles.profileHeader}>
@@ -747,6 +782,21 @@ const styles = StyleSheet.create({
   },
   selectedDifficultyText: {
     color: colors.primary.DEFAULT,
+  },
+
+  // 오프라인 상태 알림 스타일
+  offlineNotice: {
+    backgroundColor: colors['light-grey-01'],
+    padding: spacing[3],
+    borderRadius: spacing[2],
+    marginBottom: spacing[4],
+    borderLeftWidth: 4,
+    borderLeftColor: colors['grey-02'],
+  },
+  offlineNoticeText: {
+    ...fontStyles['sm-tight'],
+    color: colors['grey-03'],
+    textAlign: 'center',
   },
 });
 

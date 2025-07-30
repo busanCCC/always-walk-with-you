@@ -11,6 +11,7 @@ import {
 import theme from '@/constants/theme';
 import { useUserGroups } from '@/queries/groupQueries';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNetwork } from '@/utils/networkManager';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { UserGroup } from '@/types/group';
@@ -24,6 +25,7 @@ type SoonScreenNavigationProp = BottomTabNavigationProp<MainTabParamList, '순'>
 const SoonScreen: React.FC = () => {
   const navigation = useNavigation<SoonScreenNavigationProp>();
   const route = useRoute<SoonScreenRouteProp>();
+  const { isOnline } = useNetwork();
   const { data: groups, isLoading, isError, error, refetch } = useUserGroups();
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -64,6 +66,28 @@ const SoonScreen: React.FC = () => {
   const handleModalSuccess = () => {
     refetch();
   };
+
+  // 오프라인 상태 체크 - 가장 먼저!
+  if (!isOnline) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.offlineIcon}>📡</Text>
+        <Text style={styles.offlineTitle}>인터넷 연결이 필요합니다</Text>
+        <Text style={styles.offlineText}>
+          순 그룹을 확인하려면 인터넷 연결이 필요합니다.{'\n'}
+          Wi-Fi 또는 데이터 연결을 확인해주세요.
+        </Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            // 새로고침 시도 - 네트워크가 다시 연결되었을 수 있음
+            refetch();
+          }}>
+          <Text style={styles.retryButtonText}>다시 시도</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (isLoading && !refreshing) {
     return (
@@ -229,6 +253,24 @@ const styles = StyleSheet.create({
   retryButtonText: {
     ...theme.fontStyles['sm-tight'],
     color: theme.colors.white,
+  },
+  // 오프라인 상태 스타일
+  offlineIcon: {
+    fontSize: 48,
+    marginBottom: theme.spacing[4],
+  },
+  offlineTitle: {
+    ...theme.fontStyles['xl-tight'],
+    color: theme.colors['grey-04'],
+    marginBottom: theme.spacing[2],
+    textAlign: 'center',
+  },
+  offlineText: {
+    ...theme.fontStyles['sm-tight'],
+    color: theme.colors['grey-01'],
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: theme.spacing[6],
   },
 });
 

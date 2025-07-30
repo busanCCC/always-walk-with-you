@@ -526,6 +526,9 @@ const GroupDetailScreen = () => {
             multiline
             numberOfLines={4}
             editable={!updateGroupMutation.isPending}
+            returnKeyType="default"
+            blurOnSubmit={false}
+            enablesReturnKeyAutomatically={false}
           />
 
           <View style={styles.modalButtonContainer}>

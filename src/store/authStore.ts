@@ -2,6 +2,8 @@ import { create, StateCreator } from 'zustand';
 import { supabase } from '@/utils/supabaseClient';
 import { Session, User } from '@supabase/supabase-js';
 import Toast from 'react-native-toast-message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
 export interface AuthState {
   session: Session | null;
@@ -24,17 +26,96 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
 
   initializeAuth: async () => {
     set({ loading: true, isInitialized: false, profileCompleted: false });
+
     try {
+      // 네트워크 상태 확인
+      const networkState = await NetInfo.fetch();
+      const isOnline = networkState.isConnected && networkState.isInternetReachable;
+
+      console.log(`[AuthStore] 네트워크 상태: ${isOnline ? '온라인' : '오프라인'}`);
+
+      if (!isOnline) {
+        // 오프라인 상태: 로컬 저장소에서 세션 복원
+        console.log('[AuthStore] 오프라인 모드: 로컬 세션 확인 중...');
+
+        try {
+          const savedSession = await AsyncStorage.getItem('user_session');
+          const savedProfileCompleted = await AsyncStorage.getItem('profile_completed');
+
+          if (savedSession) {
+            const sessionData = JSON.parse(savedSession);
+            console.log('[AuthStore] 로컬 세션 발견, 복원 중...');
+
+            set({
+              session: sessionData.session,
+              user: sessionData.user,
+              loading: false,
+              isInitialized: true,
+              profileCompleted: savedProfileCompleted === 'true',
+            });
+
+            Toast.show({
+              type: 'info',
+              text1: '오프라인 모드',
+              text2: '저장된 로그인 정보로 진입합니다.',
+              visibilityTime: 2000,
+            });
+            return;
+          } else {
+            console.log('[AuthStore] 저장된 로컬 세션 없음');
+            set({
+              session: null,
+              user: null,
+              loading: false,
+              isInitialized: true,
+              profileCompleted: false,
+            });
+            return;
+          }
+        } catch (localError) {
+          console.error('[AuthStore] 로컬 세션 복원 실패:', localError);
+          set({
+            session: null,
+            user: null,
+            loading: false,
+            isInitialized: true,
+            profileCompleted: false,
+          });
+          return;
+        }
+      }
+
+      // 온라인 상태: 서버에서 세션 검증
+      console.log('[AuthStore] 온라인 모드: 서버 세션 확인 중...');
+
       const {
         data: { session: initialSession },
         error: sessionError,
       } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.error(
-          '[AuthStore] initializeAuth: Supabase getSession error:',
-          sessionError.message
-        );
+        console.error('[AuthStore] Supabase getSession 오류:', sessionError.message);
+
+        // 서버 오류 시 로컬 세션도 확인
+        try {
+          const savedSession = await AsyncStorage.getItem('user_session');
+          if (savedSession) {
+            const sessionData = JSON.parse(savedSession);
+            console.log('[AuthStore] 서버 오류로 로컬 세션 사용');
+
+            set({
+              session: sessionData.session,
+              user: sessionData.user,
+              loading: false,
+              isInitialized: true,
+              profileCompleted: true, // 임시로 true 설정
+            });
+            return;
+          }
+        } catch (e) {
+          console.error('[AuthStore] 로컬 세션 복원 실패:', e);
+        }
+
         set({
           session: null,
           user: null,
@@ -42,39 +123,35 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
           isInitialized: true,
           profileCompleted: false,
         });
-
-        Toast.show({
-          type: 'error',
-          text1: '로그인 상태 확인 실패',
-          text2: '네트워크 연결을 확인해주세요.',
-          visibilityTime: 3000,
-        });
         return;
       }
 
       if (initialSession) {
+        // 세션이 있으면 로컬에 백업 저장
+        await AsyncStorage.setItem(
+          'user_session',
+          JSON.stringify({
+            session: initialSession,
+            user: initialSession.user,
+          })
+        );
+
+        // 프로필 정보 확인
         const { data: userProfile, error: profileError } = await supabase
           .from('users')
           .select('id, name')
           .eq('id', initialSession.user.id)
           .single();
 
-        console.log('[AuthStore] initializeAuth: User profile:', userProfile);
+        console.log('[AuthStore] 사용자 프로필:', userProfile);
 
         if (profileError && profileError.code !== 'PGRST116') {
-          console.error(
-            '[AuthStore] initializeAuth: Error fetching user profile:',
-            profileError.message
-          );
-          Toast.show({
-            type: 'error',
-            text1: '사용자 정보 로딩 실패',
-            text2: '프로필 정보를 불러올 수 없습니다.',
-            visibilityTime: 3000,
-          });
+          console.error('[AuthStore] 프로필 정보 로딩 오류:', profileError.message);
         }
 
         const isProfileComplete = userProfile && userProfile.name;
+        await AsyncStorage.setItem('profile_completed', isProfileComplete ? 'true' : 'false');
+
         set({
           session: initialSession,
           user: initialSession.user,
@@ -83,6 +160,10 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
           profileCompleted: !!isProfileComplete,
         });
       } else {
+        // 세션이 없으면 로컬 저장소도 초기화
+        await AsyncStorage.removeItem('user_session');
+        await AsyncStorage.removeItem('profile_completed');
+
         set({
           session: null,
           user: null,
@@ -92,61 +173,64 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
         });
       }
     } catch (error) {
-      console.error('[AuthStore] initializeAuth: Exception:', error);
+      console.error('[AuthStore] initializeAuth 예외:', error);
+
+      // 예외 발생 시에도 로컬 세션 확인
+      try {
+        const savedSession = await AsyncStorage.getItem('user_session');
+        if (savedSession) {
+          const sessionData = JSON.parse(savedSession);
+          console.log('[AuthStore] 예외 상황에서 로컬 세션 사용');
+
+          set({
+            session: sessionData.session,
+            user: sessionData.user,
+            loading: false,
+            isInitialized: true,
+            profileCompleted: true, // 임시로 true 설정
+          });
+          return;
+        }
+      } catch (e) {
+        console.error('[AuthStore] 예외 상황 로컬 세션 복원 실패:', e);
+      }
+
       set({
         session: null,
         user: null,
         loading: false,
         isInitialized: true,
         profileCompleted: false,
-      });
-
-      Toast.show({
-        type: 'error',
-        text1: '앱 초기화 실패',
-        text2: '잠시 후 다시 시도해주세요.',
-        visibilityTime: 4000,
       });
     }
   },
 
-  setSessionData: (session, user) => {
+  setSessionData: async (session: Session | null, user: User | null) => {
+    set({ session, user });
+
+    // 세션 데이터가 있으면 로컬에 저장
     if (session && user) {
-      supabase
-        .from('users')
-        .select('id, name')
-        .eq('id', user.id)
-        .single()
-        .then(({ data: userProfile, error: profileError }) => {
-          if (profileError && profileError.code !== 'PGRST116') {
-            console.error(
-              '[AuthStore] setSessionData: Error fetching user profile:',
-              profileError.message
-            );
-            Toast.show({
-              type: 'error',
-              text1: '프로필 정보 오류',
-              text2: '사용자 정보를 불러오는데 실패했습니다.',
-              visibilityTime: 3000,
-            });
-          }
-          const isProfileComplete = userProfile && userProfile.name;
-          set({
+      try {
+        await AsyncStorage.setItem(
+          'user_session',
+          JSON.stringify({
             session,
             user,
-            loading: false,
-            isInitialized: true,
-            profileCompleted: !!isProfileComplete,
-          });
-        });
+          })
+        );
+        console.log('[AuthStore] 세션 로컬 저장 완료');
+      } catch (error) {
+        console.error('[AuthStore] 세션 로컬 저장 실패:', error);
+      }
     } else {
-      set({
-        session: null,
-        user: null,
-        loading: false,
-        isInitialized: true,
-        profileCompleted: false,
-      });
+      // 세션이 없으면 로컬 저장소 초기화
+      try {
+        await AsyncStorage.removeItem('user_session');
+        await AsyncStorage.removeItem('profile_completed');
+        console.log('[AuthStore] 로컬 세션 초기화 완료');
+      } catch (error) {
+        console.error('[AuthStore] 로컬 세션 초기화 실패:', error);
+      }
     }
   },
 
@@ -154,36 +238,36 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => ({
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('[AuthStore] signOut: Supabase signOut error:', error.message);
-        Toast.show({
-          type: 'error',
-          text1: '로그아웃 실패',
-          text2: '다시 시도해주세요.',
-          visibilityTime: 3000,
-        });
-        return;
+        console.error('[AuthStore] signOut error:', error.message);
+      }
+    } catch (error) {
+      console.error('[AuthStore] signOut exception:', error);
+    } finally {
+      // 로컬 저장소도 초기화
+      try {
+        await AsyncStorage.removeItem('user_session');
+        await AsyncStorage.removeItem('profile_completed');
+      } catch (error) {
+        console.error('[AuthStore] 로그아웃 시 로컬 저장소 초기화 실패:', error);
       }
 
-      set({ session: null, user: null, loading: false, profileCompleted: false });
-      Toast.show({
-        type: 'success',
-        text1: '로그아웃 완료',
-        text2: '안전하게 로그아웃되었습니다.',
-        visibilityTime: 2000,
-      });
-    } catch (error) {
-      console.error('[AuthStore] signOut: Exception:', error);
-      Toast.show({
-        type: 'error',
-        text1: '로그아웃 오류',
-        text2: '예상치 못한 오류가 발생했습니다.',
-        visibilityTime: 3000,
+      set({
+        session: null,
+        user: null,
+        profileCompleted: false,
       });
     }
   },
 
-  setProfileCompleted: (completed) => {
-    set({ profileCompleted: completed, loading: false });
+  setProfileCompleted: async (completed: boolean) => {
+    set({ profileCompleted: completed });
+
+    // 프로필 완성 상태도 로컬에 저장
+    try {
+      await AsyncStorage.setItem('profile_completed', completed ? 'true' : 'false');
+    } catch (error) {
+      console.error('[AuthStore] 프로필 완성 상태 저장 실패:', error);
+    }
   },
 });
 

@@ -15,8 +15,8 @@ import { useQueries, keepPreviousData, UseQueryResult } from '@tanstack/react-qu
 import { colors, spacing, fontStyles, fonts } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { journalQueryKeys } from '@/queries/journalQueries';
-import { fetchJournalsByDateRange } from '@/apis/journalApi';
+import { localJournalApi } from '@/apis/localJournalApiDrizzle';
+import { getLocalEmotions } from '@/utils/emotionStorage';
 import { Journal, Emotion } from '@/types/journal';
 import { useAuthStore } from '@/store/authStore';
 import { formatDate } from '@/utils/dateUtils';
@@ -87,19 +87,75 @@ const JournalCalendarScreen = () => {
     return months;
   }, [currentDisplayMonth]);
 
-  // useQueries를 사용하여 여러 월의 데이터 페칭
+  // 🗄️ 로컬 DB 기반 여러 월의 데이터 페칭
   const journalQueriesResults = useQueries({
     queries: monthsToQuery.map(({ year, month }) => ({
-      queryKey: journalQueryKeys.monthlyList(year, month, userId),
-      queryFn: () => {
-        if (!userId) return Promise.resolve([]);
-        const startDate = formatDate(new Date(year, month - 1, 1));
-        const endDate = formatDate(new Date(year, month, 0));
-        return fetchJournalsByDateRange(startDate, endDate, userId);
+      queryKey: ['localJournals', 'monthly', year, month, userId],
+      queryFn: async () => {
+        if (!userId) return [];
+
+        try {
+          const startDate = formatDate(new Date(year, month - 1, 1));
+          const endDate = formatDate(new Date(year, month, 0));
+
+          // 1. 로컬 DB에서 월간 저널 가져오기
+          const localJournals = await localJournalApi.getJournalsWithDetailsByDateRange(
+            userId,
+            startDate,
+            endDate
+          );
+
+          // 2. 감정 데이터 가져오기 (캐시된 데이터 사용)
+          const emotions = await getLocalEmotions();
+          const emotionsMap = new Map(emotions.map((e) => [e.id, e]));
+
+          // 3. 로컬 저널을 Journal 형태로 변환하면서 감정 정보 추가
+          const journals: Journal[] = localJournals.map((localJournal) => {
+            const emotion = localJournal.emotionId ? emotionsMap.get(localJournal.emotionId) : null;
+
+            return {
+              id: localJournal.serverId || localJournal.localId,
+              user_id: localJournal.userId,
+              date: localJournal.date,
+              mode: localJournal.mode,
+              emotion_id: localJournal.emotionId,
+              shared_groups: localJournal.sharedGroups ? JSON.parse(localJournal.sharedGroups) : [],
+              created_at: localJournal.createdLocallyAt,
+              updated_at: localJournal.lastModifiedAt,
+              emotion: emotion
+                ? {
+                    id: emotion.id,
+                    name: emotion.name,
+                    img_url: emotion.local_img_path || emotion.img_url,
+                    description: emotion.description,
+                    created_at: emotion.created_at,
+                    updated_at: emotion.updated_at,
+                  }
+                : null,
+              journal_entries:
+                localJournal.entries?.map((entry: any) => ({
+                  id: entry.serverId || entry.localId || entry.id,
+                  journal_id: entry.serverJournalId || entry.localJournalId || entry.journal_id,
+                  entry_type: entry.entryType || entry.entry_type,
+                  text_content: entry.textContent || entry.text_content,
+                  entry_order: entry.entryOrder || entry.entry_order,
+                  created_at: entry.createdAt || entry.created_at,
+                  updated_at: entry.updatedAt || entry.updated_at,
+                })) || [],
+              user: null,
+            };
+          });
+
+          return journals;
+        } catch (error) {
+          console.error(`Failed to fetch local journals for ${year}-${month}:`, error);
+          return [];
+        }
       },
       enabled: !!userId,
-      staleTime: 1000 * 60 * 60,
+      staleTime: 1000 * 60 * 2, // 2분 캐시 (로컬 데이터이므로 짧게)
       placeholderData: keepPreviousData,
+      refetchOnMount: true,
     })),
   });
 

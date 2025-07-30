@@ -19,7 +19,7 @@ const StyledText: React.FC<StyledTextProps> = ({
   const textStyle: TextStyle = {};
 
   // 1. 기본 폰트 패밀리 설정
-  textStyle.fontFamily = theme.fonts.sans; // 기본은 Pretendard-Regular
+  textStyle.fontFamily = theme.fonts.regular; // 기본은 Pretendard-Regular
 
   // 2. Variant에 따른 스타일 적용
   if (variant && theme.fontStyles[variant]) {

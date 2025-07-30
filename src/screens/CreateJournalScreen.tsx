@@ -18,10 +18,14 @@ import {
   useCreateJournalMutation,
   useJournalExistsForDate,
 } from '@/queries/journalQueries';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { RootStackParamList } from '@/navigation/types';
 import { getTodayString } from '@/utils/journalUtils';
 import Toast from 'react-native-toast-message';
+import { localJournalApi } from '@/apis/localJournalApiDrizzle';
+import { uploadQueueManager } from '@/utils/uploadQueueManager';
+import { useNetwork } from '@/utils/networkManager';
 
 interface QuestionAnswer {
   question_id: string;
@@ -38,6 +42,7 @@ type CreateJournalRouteProp =
 const CreateJournalScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<CreateJournalRouteProp>();
+  const queryClient = useQueryClient();
   const selectedDate = route.params?.selectedDate;
   const mode = route.name === 'CreateJournalFreeWrite' ? 'free_writing' : 'prompt_based';
 
@@ -47,6 +52,7 @@ const CreateJournalScreen: React.FC = () => {
   const [answers, setAnswers] = useState<QuestionAnswer[]>([]);
   const [showExitModal, setShowExitModal] = useState(false);
   const [isForceExit, setIsForceExit] = useState(false);
+  const [isSaveSuccess, setIsSaveSuccess] = useState(false); // 저장 성공 상태 추가
   const [alertModal, setAlertModal] = useState<{
     visible: boolean;
     title: string;
@@ -63,11 +69,17 @@ const CreateJournalScreen: React.FC = () => {
   const { data: emotions = [] } = useEmotionsQuery();
   const { data: questions = [] } = useQuestionsQuery(journalDate);
 
-  // 저널 생성 mutation
+  // 저널 생성 mutation (기존 코드 - 필요시 폴백용)
   const createJournalMutation = useCreateJournalMutation();
+
+  // 네트워크 상태
+  const { isOnline } = useNetwork();
 
   // 사용자 정보
   const userId = useAuthStore((state) => state.session?.user?.id);
+
+  // 로컬 저널 생성 상태
+  const [isCreatingLocal, setIsCreatingLocal] = useState(false);
 
   // 기본 행복 감정 찾기 (이름이 '행복'인 감정을 찾거나 첫 번째 감정 사용)
   const defaultEmotion = emotions.find((emotion) => emotion.name === '행복') || emotions[0];
@@ -107,8 +119,8 @@ const CreateJournalScreen: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       const subscription = navigation.addListener('beforeRemove', (e) => {
-        if (!hasContent() || isForceExit || createJournalMutation.isPending) {
-          return; // 내용이 없거나 강제 나가기 또는 저장 중이면 그냥 나가기
+        if (!hasContent() || isForceExit || isCreatingLocal || isSaveSuccess) {
+          return; // 내용이 없거나 강제 나가기 또는 저장 중/완료 시 그냥 나가기
         }
 
         e.preventDefault();
@@ -116,7 +128,7 @@ const CreateJournalScreen: React.FC = () => {
       });
 
       return subscription;
-    }, [navigation, content, answers, isForceExit, createJournalMutation.isPending, mode])
+    }, [navigation, content, answers, isForceExit, isCreatingLocal, isSaveSuccess, mode])
   );
 
   // 질문들이 로드되면 초기 답변 상태 설정 (prompt_based mode일 때만)
@@ -142,7 +154,7 @@ const CreateJournalScreen: React.FC = () => {
           headerLeft={
             <TouchableOpacity
               onPress={() => {
-                if (hasContent() && !createJournalMutation.isPending) {
+                if (hasContent() && !isCreatingLocal && !isSaveSuccess) {
                   setShowExitModal(true);
                 } else {
                   navigation.goBack();
@@ -200,19 +212,21 @@ const CreateJournalScreen: React.FC = () => {
       }
     }
 
+    setIsCreatingLocal(true);
+
     try {
-      // 선택된 날짜가 있으면 그 날짜로, 없으면 오늘 날짜로 (현지 시간 기준)
-      // const dateString = selectedDate || getTodayString(); // 이미 위에서 선언됨
+      // 🗄️ 로컬 DB에 저널 생성
+      let localJournalData;
 
       if (mode === 'free_writing') {
-        await createJournalMutation.mutateAsync({
+        localJournalData = {
           user_id: userId,
           date: dateString,
-          mode: 'free_writing',
+          mode: 'free_writing' as const,
           emotion_id: emotionToSave.id,
           content: content.trim(),
           shared_groups: selectedGroupIds,
-        });
+        };
       } else {
         const filledAnswers = answers.filter((item) => item.answer.trim() !== '');
         const answersData = filledAnswers.map((item) => ({
@@ -220,34 +234,79 @@ const CreateJournalScreen: React.FC = () => {
           order: item.order,
         }));
 
-        await createJournalMutation.mutateAsync({
+        localJournalData = {
           user_id: userId,
           date: dateString,
-          mode: 'prompt_based',
+          mode: 'prompt_based' as const,
           emotion_id: emotionToSave.id,
           answers: answersData,
           shared_groups: selectedGroupIds,
+        };
+      }
+
+      // 로컬 저널 생성
+      const createdJournal = await localJournalApi.createJournal(localJournalData);
+      console.log('📝 Local journal created:', createdJournal.localId);
+
+      // 📤 그룹 공유가 있다면 업로드 큐에 추가
+      if (selectedGroupIds.length > 0) {
+        // 서버 API 호환 형식으로 데이터 변환
+        const serverData = {
+          user_id: userId,
+          date: dateString,
+          mode: localJournalData.mode,
+          emotion_id: emotionToSave.id,
+          shared_groups: selectedGroupIds,
+          ...(mode === 'free_writing'
+            ? { content: content.trim() }
+            : { answers: (localJournalData as any).answers }),
+        };
+
+        await uploadQueueManager.addToQueue('create_journal', createdJournal.localId, serverData);
+
+        // 오프라인 안내 토스트는 uploadQueueManager에서 자동으로 표시됨
+        if (isOnline) {
+          Toast.show({
+            type: 'success',
+            text1: '저장 완료',
+            text2: '일기가 저장되고 그룹에 공유되었습니다.',
+            visibilityTime: 2000,
+          });
+        } else {
+          Toast.show({
+            type: 'success',
+            text1: '저장 완료',
+            text2: '일기가 저장되었습니다. 온라인 상태일 때 그룹에 공유됩니다.',
+            visibilityTime: 3000,
+          });
+        }
+      } else {
+        // 로컬 전용 저장
+        Toast.show({
+          type: 'success',
+          text1: '저장 완료',
+          text2: '일기가 저장되었습니다.',
+          visibilityTime: 2000,
         });
       }
 
-      Toast.show({
-        type: 'success',
-        text1: '저장 완료',
-        text2: '영성일기가 저장되었습니다.',
-        visibilityTime: 2000,
+      // React Query 캐시 무효화 (화면 즉시 반영)
+      queryClient.invalidateQueries({
+        queryKey: ['localJournals'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['emotions'],
       });
 
-      // 강제 나가기 설정 후 즉시 나가기
+      // 저장 성공 후 강제 나가기 설정
+      setIsSaveSuccess(true);
       setIsForceExit(true);
       navigation.goBack();
     } catch (error) {
       console.error('Save journal error:', error);
 
-      // 중복 생성 에러인지 확인
-      const isUniqueConstraintError =
-        error instanceof Error && error.message.includes('unique_user_date_journal');
-
-      if (isUniqueConstraintError) {
+      // 하루 1개 제약 에러 확인
+      if (error instanceof Error && error.message.includes('해당 날짜에 이미 일기가 존재합니다')) {
         const dateObj = new Date(dateString);
         const month = dateObj.getMonth() + 1;
         const day = dateObj.getDate();
@@ -265,6 +324,8 @@ const CreateJournalScreen: React.FC = () => {
           visibilityTime: 3000,
         });
       }
+    } finally {
+      setIsCreatingLocal(false);
     }
   };
 
@@ -297,12 +358,12 @@ const CreateJournalScreen: React.FC = () => {
         onSelectEmotion={handleSelectEmotion}
         defaultEmotion={defaultEmotion}
         onSave={handleSaveJournal}
-        isSaving={createJournalMutation.isPending}
+        isSaving={isCreatingLocal}
         showGroupShare={true}
         selectedGroupIds={selectedGroupIds}
         onShareToGroup={() => groupShareBottomSheetRef.current?.present()}
         onSelectGroups={handleSelectGroups}
-        disabled={createJournalMutation.isPending}
+        disabled={isCreatingLocal}
       />
 
       {/* 뒤로가기 확인 모달 */}

@@ -94,6 +94,7 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
   const insets = useSafeAreaInsets();
   const emotionBottomSheetRef = useRef<EmotionBottomSheetRef>(null);
   const groupShareBottomSheetRef = useRef<GroupShareBottomSheetRef>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // 키보드 높이 추적
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -176,59 +177,110 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
     onSave();
   };
 
-  const renderFreeWriteContent = () => (
-    <View style={styles.contentContainer}>
-      <TextInput
-        style={styles.freeWriteInput}
-        placeholder={freeWritePlaceholder}
-        placeholderTextColor={colors['light-grey-02']}
-        value={freeWriteContent}
-        onChangeText={onFreeWriteContentChange}
-        multiline
-        textAlignVertical="top"
-        editable={!disabled}
-        returnKeyType="default"
-        blurOnSubmit={true}
-      />
-    </View>
-  );
+  const renderFreeWriteContent = () => {
+    // 키보드 높이에 따른 하단 여백 계산
+    const keyboardPadding = keyboardHeight > 0 ? keyboardHeight + 20 : 100;
 
-  const renderPromptBasedContent = () => (
-    <ScrollView
-      style={styles.scrollContainer}
-      contentContainerStyle={styles.scrollContentContainer}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      bounces={true}
-      scrollEventThrottle={16}
-      onTouchStart={() => Keyboard.dismiss()}>
-      {promptAnswers.map((answer, index) => {
-        const question = questions.find((q) => q.order_index === answer.order) || questions[index];
-        return (
-          <View key={answer.order || index} style={styles.questionContainer}>
-            <View style={styles.questionTextContainer}>
-              <Text style={styles.questionText}>
-                {question?.content || answer.question_text || `질문 ${index + 1}`}
-              </Text>
+    return (
+      <View style={[styles.contentContainer, { paddingBottom: keyboardPadding }]}>
+        <TextInput
+          style={styles.freeWriteInput}
+          placeholder={freeWritePlaceholder}
+          placeholderTextColor={colors['light-grey-02']}
+          value={freeWriteContent}
+          onChangeText={onFreeWriteContentChange}
+          multiline
+          textAlignVertical="top"
+          editable={!disabled}
+          returnKeyType="default"
+          blurOnSubmit={false}
+          enablesReturnKeyAutomatically={false}
+        />
+      </View>
+    );
+  };
+
+  const renderPromptBasedContent = () => {
+    // 키보드 높이에 따른 하단 여백 계산
+    const keyboardPadding = keyboardHeight > 0 ? keyboardHeight + 20 : 100;
+
+    return (
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollContainer}
+        contentContainerStyle={[
+          styles.scrollContentContainer,
+          {
+            paddingBottom: keyboardPadding, // 키보드 높이만큼 하단 여백 추가
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bounces={true}
+        scrollEventThrottle={16}
+        // onTouchStart 제거 - 불필요한 키보드 숨김 방지
+      >
+        {promptAnswers.map((answer, index) => {
+          const question =
+            questions.find((q) => q.order_index === answer.order) || questions[index];
+          return (
+            <View key={answer.order || index} style={styles.questionContainer}>
+              <View style={styles.questionTextContainer}>
+                <Text style={styles.questionText}>
+                  {question?.content || answer.question_text || `질문 ${index + 1}`}
+                </Text>
+              </View>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder={answer.placeholder || '답변을 입력해주세요...'}
+                  placeholderTextColor={colors['light-grey-02']}
+                  value={answer.answer}
+                  onChangeText={(text) => onPromptAnswerChange?.(answer.order, text)}
+                  multiline
+                  textAlignVertical="top"
+                  editable={!disabled}
+                  scrollEnabled={false}
+                  returnKeyType="default"
+                  blurOnSubmit={false}
+                  enablesReturnKeyAutomatically={false}
+                  onFocus={() => {
+                    // TextInput 포커스 시 해당 위치로 자동 스크롤
+                    setTimeout(
+                      () => {
+                        if (scrollViewRef.current) {
+                          // 질문별 예상 높이 (질문 텍스트 + 입력창 + 여백)
+                          const questionHeight = 140;
+
+                          // 현재 질문의 대략적인 Y 위치 계산
+                          const questionY = index * questionHeight;
+
+                          // 키보드 높이 고려한 스크롤 오프셋
+                          const keyboardOffset = keyboardHeight > 0 ? keyboardHeight + 100 : 250;
+
+                          // 마지막 질문들은 더 많이 스크롤
+                          const isLastQuestions = index >= promptAnswers.length - 2;
+                          const additionalScroll = isLastQuestions ? 200 : 100;
+
+                          const scrollToY = Math.max(0, questionY - additionalScroll);
+
+                          scrollViewRef.current.scrollTo({
+                            y: scrollToY,
+                            animated: true,
+                          });
+                        }
+                      },
+                      Platform.OS === 'ios' ? 300 : 150
+                    ); // iOS 키보드 애니메이션 고려
+                  }}
+                />
+              </View>
             </View>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.textInput}
-                placeholder={answer.placeholder || '답변을 입력해주세요...'}
-                placeholderTextColor={colors['light-grey-02']}
-                value={answer.answer}
-                onChangeText={(text) => onPromptAnswerChange?.(answer.order, text)}
-                multiline
-                textAlignVertical="top"
-                editable={!disabled}
-                scrollEnabled={false}
-              />
-            </View>
-          </View>
-        );
-      })}
-    </ScrollView>
-  );
+          );
+        })}
+      </ScrollView>
+    );
+  };
 
   return (
     <View style={styles.container}>

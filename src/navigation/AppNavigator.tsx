@@ -18,6 +18,7 @@ import JournalDetailScreen from '@/screens/JournalDetailScreen';
 import SelectJournalModeScreen from '@/screens/SelectJournalModeScreen';
 import CreateJournalScreen from '@/screens/CreateJournalScreen';
 import EditJournalScreen from '@/screens/EditJournalScreen';
+import QueueManagementScreen from '@/screens/QueueManagementScreen';
 import { navigationRef } from '@/utils/NavigationService';
 
 // 스크린 타입 정의
@@ -104,6 +105,11 @@ export default function AppNavigator() {
                 name="EditJournal"
                 component={EditJournalScreen}
                 options={{ headerShown: true }}
+              />
+              <Stack.Screen
+                name="QueueManagement"
+                component={QueueManagementScreen}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="ProfileSetup"

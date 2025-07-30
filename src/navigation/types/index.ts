@@ -26,5 +26,6 @@ export type RootStackParamList = {
   CreateJournalFreeWrite: { selectedDate?: string };
   CreateJournalPrompt: { selectedDate?: string };
   EditJournal: { journalId: string };
+  QueueManagement: undefined;
   // CreateJournalHandwriting: undefined;
 };
