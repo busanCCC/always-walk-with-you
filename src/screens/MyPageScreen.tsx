@@ -232,12 +232,6 @@ const MyPageScreen = () => {
       onPress: handleEditProfile,
     },
     {
-      id: 'queue-management',
-      title: '업로드 큐 관리',
-      icon: 'cloud-upload-outline',
-      onPress: () => navigation.navigate('QueueManagement' as never),
-    },
-    {
       id: 'difficulty-settings',
       title: '질문 유형 설정',
       icon: 'help-circle-outline',

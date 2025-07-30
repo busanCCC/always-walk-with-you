@@ -25,7 +25,7 @@ import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { supabase } from '@/utils/supabaseClient';
 import { database } from '@/db/database';
 import { NetworkProvider } from '@/utils/networkManager';
-import { uploadQueueManager } from '@/utils/uploadQueueManager';
+import { localJournalApi } from '@/apis/localJournalApiDrizzle';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -38,6 +38,61 @@ const queryClient = new QueryClient();
 
 // 딥링크 처리를 위한 전역 변수
 let pendingDeepLink: { groupId: string; token: string } | null = null;
+
+// 초기 서버 동기화 함수
+const performInitialSync = async (userId: string) => {
+  try {
+    console.log('🔄 초기 서버 동기화 시작...');
+
+    // 1. 로컬의 공유된 저널들 가져오기
+    const localSharedJournals = await localJournalApi.getJournalsWithDetailsByDateRange(
+      userId,
+      '2020-01-01',
+      '2030-12-31'
+    );
+
+    const sharedJournals = localSharedJournals.filter(
+      (journal) => journal.serverId && journal.sharedGroups && journal.sharedGroups.length > 0
+    );
+
+    console.log(`📊 로컬에 ${sharedJournals.length}개의 공유 저널이 있습니다.`);
+
+    // 2. 각 공유 저널의 서버 상태 확인
+    for (const localJournal of sharedJournals) {
+      try {
+        const { data: serverJournal, error } = await supabase
+          .from('journals')
+          .select('id')
+          .eq('id', localJournal.serverId)
+          .single();
+
+        if (error || !serverJournal) {
+          // 서버에서 삭제된 저널 - 로컬에서 공유 해제
+          console.log(`🗑️ 서버에서 삭제된 저널 발견: ${localJournal.localId}`);
+
+          await localJournalApi.updateSyncStatus(localJournal.localId, 'local', undefined, {
+            serverDeleted: true,
+            deletedAt: new Date().toISOString(),
+            reason: '서버에서 삭제됨',
+          });
+
+          // 공유 그룹 정보도 제거
+          await localJournalApi.updateJournal(localJournal.localId, {
+            shared_groups: [],
+          });
+
+          console.log(`✅ 저널 공유 해제 완료: ${localJournal.localId}`);
+        }
+      } catch (error) {
+        console.error(`❌ 저널 ${localJournal.localId} 서버 상태 확인 실패:`, error);
+      }
+    }
+
+    console.log('✅ 초기 서버 동기화 완료');
+  } catch (error) {
+    console.error('❌ 초기 서버 동기화 실패:', error);
+  }
+};
 
 export default function App() {
   const { session, isInitialized, initializeAuth } = useAuthStore();
@@ -72,19 +127,13 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        // 1. 데이터베이스 초기화 (로컬 DB)
+        // 1. 인증 상태 먼저 초기화 (로컬 세션 복원)
+        console.log('🔐 인증 상태 초기화 중...');
+        await initializeAuth();
+
+        // 2. 데이터베이스 초기화 (로컬 DB)
         console.log('🗄️ 로컬 데이터베이스 초기화 중...');
         await database.initialize();
-
-        // 2. 업로드 큐 네트워크 리스너 초기화 (데이터베이스 준비 후)
-        console.log('📤 업로드 큐 네트워크 리스너 초기화 중...');
-        uploadQueueManager.initializeNetworkListener();
-
-        // 3. 서버와 동기화 (온라인 상태일 때)
-        console.log('📡 서버 동기화 시작...');
-        await uploadQueueManager.syncWithServer();
-
-        await initializeAuth();
 
         // Google 로그인 초기화는 별도로 처리 (실패해도 앱 시작을 막지 않음)
         try {
@@ -102,6 +151,19 @@ export default function App() {
 
           // 2. 질문 데이터 캐시 (로컬 JSON)
           queryClient.setQueryData(['questions'], questionsData);
+
+          // 3. 서버와 로컬 저널 동기화 (백그라운드에서 실행)
+          if (session?.user?.id) {
+            console.log('🔄 앱 시작 시 서버 동기화 시작...');
+            // 백그라운드에서 실행하여 앱 시작을 지연시키지 않음
+            setTimeout(async () => {
+              try {
+                await performInitialSync(session.user.id);
+              } catch (error) {
+                console.warn('초기 동기화 실패:', error);
+              }
+            }, 2000); // 2초 후 실행
+          }
         } catch (error) {
           console.warn('핵심 데이터 미리 로딩 실패:', error);
 

@@ -20,8 +20,8 @@ import GroupShareBottomSheet, {
 import ConfirmationModal from '@/components/common/ConfirmationModal';
 import AlertModal from '@/components/common/AlertModal';
 import { localJournalApi } from '@/apis/localJournalApiDrizzle';
-import { uploadQueueManager } from '@/utils/uploadQueueManager';
 import { useNetwork } from '@/utils/networkManager';
+import { createJournal, updateJournal } from '@/apis/journalApi';
 
 type EditJournalScreenRouteProp = RouteProp<RootStackParamList, 'EditJournal'>;
 type EditJournalScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'EditJournal'>;
@@ -42,7 +42,7 @@ const EditJournalScreen = () => {
   const [isForceExit, setIsForceExit] = useState(false);
   const [isSaveSuccess, setIsSaveSuccess] = useState(false); // 저장 성공 상태 추가
 
-  // 로컬 저널 상태
+  // 로컬 일기 상태
   const [localJournal, setLocalJournal] = useState<any>(null);
   const [isLoadingJournal, setIsLoadingJournal] = useState(true);
   const [isUpdatingJournal, setIsUpdatingJournal] = useState(false);
@@ -75,7 +75,7 @@ const EditJournalScreen = () => {
   // 일기 수정 mutation (기존 코드 - 필요시 폴백용)
   const updateMutation = useUpdateJournalMutation();
 
-  // 로컬 저널 로드
+  // 로컬 일기 로드
   useEffect(() => {
     const loadLocalJournal = async () => {
       if (!journalId) return;
@@ -90,27 +90,25 @@ const EditJournalScreen = () => {
         try {
           // journalId가 localId인 경우
           journal = await localJournalApi.getJournalById(journalId);
-        } catch (error) {
-          // journalId가 serverId인 경우 - 로컬 DB에서 serverId로 찾기
-          // 현재 localJournalApi에 serverId로 찾는 기능이 없으므로 서버에서 가져오기
-          console.log('Local journal not found, trying server...');
-          const serverJournal = await fetchJournalById(journalId);
 
-          // 서버에서 가져온 저널을 로컬 형식으로 변환
-          journal = {
-            localId: `server_${journalId}`,
-            serverId: journalId,
-            userId: serverJournal.user_id,
-            date: serverJournal.date,
-            mode: serverJournal.mode,
-            emotionId: serverJournal.emotion_id,
-            sharedGroups: JSON.stringify(serverJournal.shared_groups || []),
-            syncStatus: 'synced',
-            createdLocallyAt: serverJournal.created_at,
-            lastModifiedAt: serverJournal.updated_at,
-            isShared: (serverJournal.shared_groups || []).length > 0,
-            entries: serverJournal.journal_entries || [],
-          };
+          // 공유 해제된 저널인지 확인하고 상태 업데이트
+          if (journal.serverId && journal.sharedGroups && journal.sharedGroups.length === 0) {
+            console.log(`🔄 공유 해제된 저널 확인: ${journal.localId}`);
+            // serverId 제거하여 완전히 로컬 전용으로 변경
+            await localJournalApi.updateSyncStatus(journal.localId, 'local', undefined, {
+              unsharedAt: new Date().toISOString(),
+              reason: '사용자가 공유 해제함',
+            });
+
+            // 업데이트된 저널 정보 다시 가져오기
+            journal = await localJournalApi.getJournalById(journalId);
+          }
+        } catch (error) {
+          // 로컬에서 찾을 수 없는 경우 - 에러 처리
+          console.error('로컬에서 저널을 찾을 수 없음:', error);
+          throw new Error(
+            '해당 일기를 찾을 수 없습니다. 삭제되었거나 접근 권한이 없을 수 있습니다.'
+          );
         }
 
         setLocalJournal(journal);
@@ -123,7 +121,7 @@ const EditJournalScreen = () => {
 
         if (journal.mode === 'free_writing' && journal.entries?.length > 0) {
           const firstEntry = journal.entries[0];
-          // 로컬 저널과 서버 저널 모두 지원
+          // 로컬 일기과 서버 일기 모두 지원
           const content = (firstEntry as any).textContent || (firstEntry as any).text_content || '';
           setFreeWriteContent(content);
         } else if (journal.mode === 'prompt_based' && journal.entries?.length > 0) {
@@ -143,7 +141,7 @@ const EditJournalScreen = () => {
         }
       } catch (error) {
         console.error('Failed to load journal:', error);
-        setLoadError(error instanceof Error ? error.message : '저널을 불러올 수 없습니다.');
+        setLoadError(error instanceof Error ? error.message : '일기를 불러올 수 없습니다.');
       } finally {
         setIsLoadingJournal(false);
       }
@@ -328,7 +326,7 @@ const EditJournalScreen = () => {
     setIsUpdatingJournal(true);
 
     try {
-      // 🗄️ 로컬 DB에서 저널 업데이트
+      // 🗄️ 로컬 DB에서 일기 업데이트
       const updateData = {
         mode: localJournal.mode,
         emotion_id: selectedEmotion.id,
@@ -350,7 +348,19 @@ const EditJournalScreen = () => {
         !selectedGroupIds.every((id) => originalGroupIds.includes(id));
 
       if (selectedGroupIds.length > 0) {
-        // 서버 API 호환 형식으로 데이터 변환
+        // 그룹 공유가 있는 경우 - 온라인에서만 처리
+        if (!isOnline) {
+          Toast.show({
+            type: 'error',
+            text1: '수정 실패',
+            text2: '그룹 공유 수정은 온라인 상태에서만 가능합니다.',
+            visibilityTime: 3000,
+          });
+          setIsUpdatingJournal(false);
+          return;
+        }
+
+        // 온라인: 서버에 바로 수정하고 로컬 일기 업데이트
         const serverData = {
           user_id: localJournal.userId,
           date: localJournal.date,
@@ -362,60 +372,91 @@ const EditJournalScreen = () => {
             : { answers: promptAnswers }),
         };
 
-        if (updatedJournal.serverId) {
-          // 기존 서버 저널 업데이트
-          await uploadQueueManager.addToQueue('update_journal', localJournal.localId, serverData);
-        } else {
-          // 로컬 전용 저널을 서버에 새로 생성
-          await uploadQueueManager.addToQueue('create_journal', localJournal.localId, serverData);
-        }
+        try {
+          // 공유 해제된 저널인지 확인
+          const currentJournal = await localJournalApi.getJournalById(localJournal.localId);
 
-        if (isOnline) {
+          if (
+            currentJournal.serverId &&
+            currentJournal.sharedGroups &&
+            currentJournal.sharedGroups.length > 0
+          ) {
+            // 서버에 공유된 저널 업데이트
+            await updateJournal(currentJournal.serverId, localJournal.userId, serverData);
+          } else {
+            // 로컬 전용 일기를 서버에 새로 생성
+            const serverJournal = await createJournal(serverData);
+            // 로컬 일기에 서버 ID 업데이트
+            await localJournalApi.updateSyncStatus(
+              localJournal.localId,
+              'synced',
+              serverJournal.id
+            );
+          }
+
           Toast.show({
             type: 'success',
             text1: '수정 완료',
             text2: '일기가 수정되고 그룹에 공유되었습니다.',
             visibilityTime: 2000,
           });
-        } else {
+        } catch (error) {
+          console.error('서버 일기 수정 실패:', error);
           Toast.show({
             type: 'success',
             text1: '수정 완료',
-            text2: '일기가 수정되었습니다. 온라인 상태일 때 그룹에 공유됩니다.',
+            text2:
+              '일기는 수정되었지만 그룹 공유에 실패했습니다. 오프라인 상태에서 다시 시도해보세요.',
             visibilityTime: 3000,
           });
         }
       } else if (hasGroupsChanged && selectedGroupIds.length === 0 && originalGroupIds.length > 0) {
-        // 그룹 공유 취소 처리
-        if (updatedJournal.serverId) {
-          // 서버에 이미 업로드된 저널 - 서버에서 공유 취소
-          await uploadQueueManager.addToQueue('delete_journal', localJournal.localId, {});
+        // 그룹 공유 취소 처리 - 온라인에서만 처리
+        if (!isOnline) {
+          Toast.show({
+            type: 'error',
+            text1: '수정 실패',
+            text2: '그룹 공유 취소는 온라인 상태에서만 가능합니다.',
+            visibilityTime: 3000,
+          });
+          setIsUpdatingJournal(false);
+          return;
+        }
 
-          if (isOnline) {
+        // 공유 해제된 저널인지 확인
+        const currentJournal = await localJournalApi.getJournalById(localJournal.localId);
+
+        if (
+          currentJournal.serverId &&
+          currentJournal.sharedGroups &&
+          currentJournal.sharedGroups.length > 0
+        ) {
+          // 서버에서 완전 삭제
+          try {
+            const { deleteJournal } = await import('@/apis/journalApi');
+            await deleteJournal(currentJournal.serverId, localJournal.userId);
+
+            // 로컬 일기에서 서버 ID 제거
+            await localJournalApi.updateSyncStatus(localJournal.localId, 'local');
+
             Toast.show({
               type: 'success',
               text1: '수정 완료',
               text2: '일기가 수정되고 그룹 공유가 취소되었습니다.',
               visibilityTime: 2000,
             });
-          } else {
+          } catch (error) {
+            console.error('서버 일기 삭제 실패:', error);
             Toast.show({
               type: 'success',
               text1: '수정 완료',
-              text2: '일기가 수정되었습니다. 온라인 상태일 때 그룹 공유가 취소됩니다.',
+              text2:
+                '일기는 수정되었지만 그룹 공유 취소에 실패했습니다. 오프라인 상태에서 다시 시도해보세요.',
               visibilityTime: 3000,
             });
           }
         } else {
-          // 아직 서버에 업로드되지 않은 저널 - 업로드 큐에서 제거
-          const removedCount = await uploadQueueManager.removeQueueItemsForJournal(
-            localJournal.localId
-          );
-
-          if (removedCount > 0) {
-            console.log(`🔄 로컬 저널의 업로드 큐 ${removedCount}개 아이템 제거됨`);
-          }
-
+          // 로컬 전용 일기의 공유 취소
           Toast.show({
             type: 'success',
             text1: '수정 완료',
@@ -436,9 +477,18 @@ const EditJournalScreen = () => {
       // React Query 캐시 무효화 (화면 즉시 반영)
       queryClient.invalidateQueries({
         queryKey: ['localJournals'],
+        refetchType: 'all',
       });
       queryClient.invalidateQueries({
         queryKey: ['emotions'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['groupJournals'],
+      });
+
+      // 특정 저널 상세 캐시도 무효화
+      queryClient.removeQueries({
+        queryKey: ['localJournals', 'detail', localJournal.localId],
       });
 
       // 저장 성공 후 강제 나가기 설정
@@ -483,7 +533,17 @@ const EditJournalScreen = () => {
   if (loadError || emotionsError || !localJournal) {
     return (
       <View style={[styles.container, styles.centered]}>
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          color={colors.secondary.DEFAULT}
+          style={styles.errorIcon}
+        />
+        <Text style={styles.errorTitle}>일기를 불러올 수 없습니다</Text>
         <Text style={styles.errorText}>{loadError || '일기 정보를 불러올 수 없습니다.'}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => window.location.reload()}>
+          <Text style={styles.retryButtonText}>다시 시도</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -505,9 +565,21 @@ const EditJournalScreen = () => {
         saveButtonText="수정하기"
         showGroupShare={true}
         selectedGroupIds={selectedGroupIds}
-        onShareToGroup={() => groupShareBottomSheetRef.current?.present()}
+        onShareToGroup={() => {
+          if (!isOnline) {
+            Toast.show({
+              type: 'info',
+              text1: '오프라인 모드',
+              text2: '그룹 공유는 온라인 상태에서만 가능합니다.',
+              visibilityTime: 2000,
+            });
+            return;
+          }
+          groupShareBottomSheetRef.current?.present();
+        }}
         onSelectGroups={handleSelectGroups}
         disabled={isUpdatingJournal}
+        isOnline={isOnline}
         leftFooterContent={
           <Text style={styles.modeText}>
             {localJournal.mode === 'free_writing' ? '자유 작성' : '질문 기반 작성'}
@@ -553,9 +625,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  errorIcon: {
+    marginBottom: spacing[4],
+  },
+  errorTitle: {
+    ...fontStyles['lg-normal'],
+    color: colors.secondary.DEFAULT,
+    marginBottom: spacing[2],
+    textAlign: 'center',
+  },
   errorText: {
     color: colors.secondary.DEFAULT,
     fontSize: fontStyles['base-normal'].fontSize,
+    textAlign: 'center',
+    marginBottom: spacing[6],
+    paddingHorizontal: spacing[4],
+  },
+  retryButton: {
+    backgroundColor: colors.primary.DEFAULT,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+    borderRadius: spacing[2],
+  },
+  retryButtonText: {
+    ...fontStyles['base-normal'],
+    color: colors.white,
+    fontWeight: 'bold',
   },
   headerButton: {
     paddingVertical: spacing[2],

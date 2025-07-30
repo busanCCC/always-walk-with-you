@@ -180,7 +180,7 @@ export const createJournal = async (journalData: {
       throw error;
     }
 
-    // 저널 엔트리 생성
+    // 일기 엔트리 생성
     if (journalData.mode === 'free_writing' && journalData.content) {
       // 자유 글쓰기의 경우
       const { error: entryError } = await supabase.from('journal_entries').insert({

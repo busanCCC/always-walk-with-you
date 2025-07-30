@@ -1,7 +1,7 @@
 import { sqliteTable, text, integer, uniqueIndex, index } from 'drizzle-orm/sqlite-core';
 import { relations } from 'drizzle-orm';
 
-// 로컬 저널 테이블
+// 로컬 일기 테이블
 export const localJournals = sqliteTable(
   'local_journals',
   {
@@ -12,7 +12,7 @@ export const localJournals = sqliteTable(
     mode: text('mode', { enum: ['free_writing', 'prompt_based', 'handwriting_upload'] }).notNull(),
     emotionId: text('emotion_id'),
     sharedGroups: text('shared_groups'), // JSON array
-    syncStatus: text('sync_status', { enum: ['local', 'pending', 'synced', 'conflict'] })
+    syncStatus: text('sync_status', { enum: ['local', 'synced', 'conflict'] })
       .notNull()
       .default('local'),
     createdLocallyAt: text('created_locally_at').notNull(),
@@ -29,7 +29,7 @@ export const localJournals = sqliteTable(
   }
 );
 
-// 로컬 저널 엔트리 테이블
+// 로컬 일기 엔트리 테이블
 export const localJournalEntries = sqliteTable(
   'local_journal_entries',
   {
@@ -48,28 +48,6 @@ export const localJournalEntries = sqliteTable(
   (table) => {
     return {
       journalIdx: index('entries_journal_idx').on(table.localJournalId),
-    };
-  }
-);
-
-// 업로드 큐 테이블
-export const uploadQueue = sqliteTable(
-  'upload_queue',
-  {
-    id: text('id').primaryKey(),
-    type: text('type', { enum: ['create_journal', 'update_journal', 'delete_journal'] }).notNull(),
-    localJournalId: text('local_journal_id')
-      .notNull()
-      .references(() => localJournals.localId, { onDelete: 'cascade' }),
-    data: text('data').notNull(), // JSON data
-    attempts: integer('attempts').notNull().default(0),
-    createdAt: text('created_at').notNull(),
-    retryAfter: text('retry_after'),
-    errorMessage: text('error_message'),
-  },
-  (table) => {
-    return {
-      retryIdx: index('queue_retry_idx').on(table.retryAfter),
     };
   }
 );
@@ -94,7 +72,6 @@ export const cachedGroups = sqliteTable('cached_groups', {
 // Relations 정의 (조인을 위한)
 export const localJournalsRelations = relations(localJournals, ({ many }) => ({
   entries: many(localJournalEntries),
-  uploadQueue: many(uploadQueue),
 }));
 
 export const localJournalEntriesRelations = relations(localJournalEntries, ({ one }) => ({
@@ -104,19 +81,10 @@ export const localJournalEntriesRelations = relations(localJournalEntries, ({ on
   }),
 }));
 
-export const uploadQueueRelations = relations(uploadQueue, ({ one }) => ({
-  journal: one(localJournals, {
-    fields: [uploadQueue.localJournalId],
-    references: [localJournals.localId],
-  }),
-}));
-
 // 타입 정의 (자동 추론)
 export type LocalJournal = typeof localJournals.$inferSelect;
 export type LocalJournalInsert = typeof localJournals.$inferInsert;
 export type LocalJournalEntry = typeof localJournalEntries.$inferSelect;
 export type LocalJournalEntryInsert = typeof localJournalEntries.$inferInsert;
-export type UploadQueueItem = typeof uploadQueue.$inferSelect;
-export type UploadQueueInsert = typeof uploadQueue.$inferInsert;
 export type CachedUser = typeof cachedUsers.$inferSelect;
 export type CachedGroup = typeof cachedGroups.$inferSelect;

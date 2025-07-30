@@ -66,6 +66,7 @@ interface JournalEditorFormProps {
   // 기타
   disabled?: boolean;
   leftFooterContent?: React.ReactNode;
+  isOnline?: boolean; // 네트워크 상태
 }
 
 const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
@@ -90,6 +91,7 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
   onSelectGroups,
   disabled = false,
   leftFooterContent,
+  isOnline = true,
 }) => {
   const insets = useSafeAreaInsets();
   const emotionBottomSheetRef = useRef<EmotionBottomSheetRef>(null);
@@ -143,7 +145,11 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
 
   const handleShareToGroup = () => {
     Keyboard.dismiss(); // bottom sheet 열기 전에 키보드 내리기
-    groupShareBottomSheetRef.current?.present();
+    if (onShareToGroup) {
+      onShareToGroup(); // 상위 컴포넌트에서 온라인 체크 및 처리
+    } else {
+      groupShareBottomSheetRef.current?.present();
+    }
   };
 
   const handleSave = () => {
@@ -334,16 +340,17 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
               <TouchableOpacity
                 style={styles.shareButton}
                 onPress={handleShareToGroup}
-                disabled={disabled}>
+                disabled={disabled || !isOnline}>
                 <View style={styles.shareIcon}>
                   <Ionicons
                     name="share-outline"
                     size={16}
-                    color={disabled ? colors['light-grey-02'] : colors.primary.DEFAULT}
+                    color={disabled || !isOnline ? colors['light-grey-02'] : colors.primary.DEFAULT}
                   />
                 </View>
-                <Text style={[styles.shareButtonText, disabled && styles.disabledText]}>
-                  순에 공유하기({selectedGroupIds.length})
+                <Text
+                  style={[styles.shareButtonText, (disabled || !isOnline) && styles.disabledText]}>
+                  {!isOnline ? '오프라인 모드' : `순에 공유하기(${selectedGroupIds.length})`}
                 </Text>
               </TouchableOpacity>
             ) : (

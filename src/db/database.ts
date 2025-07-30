@@ -37,11 +37,75 @@ class Database {
       // 마이그레이션 실행 (테이블 생성)
       await this.runMigrations();
 
+      // 데이터베이스 정리 실행
+      await this.cleanupDatabase();
+
       this.initialized = true;
       console.log('✅ Database initialized with Drizzle ORM');
     } catch (error) {
       console.error('❌ Failed to initialize database:', error);
       throw error;
+    }
+  }
+
+  /**
+   * 데이터베이스 정리 (잘못된 데이터 제거)
+   */
+  private async cleanupDatabase(): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    try {
+      console.log('🧹 데이터베이스 정리 중...');
+
+      // 1. 고아 엔트리 제거 (존재하지 않는 저널의 엔트리)
+      const allEntries = await this.db.select().from(schema.localJournalEntries);
+      const allJournals = await this.db.select().from(schema.localJournals);
+      const journalIds = new Set(allJournals.map((j) => j.localId));
+
+      const orphanEntries = allEntries.filter((entry) => !journalIds.has(entry.localJournalId));
+
+      if (orphanEntries.length > 0) {
+        console.log(`🗑️ ${orphanEntries.length}개의 고아 엔트리 제거`);
+        for (const entry of orphanEntries) {
+          await this.db
+            .delete(schema.localJournalEntries)
+            .where(eq(schema.localJournalEntries.localId, entry.localId));
+        }
+      }
+
+      // 2. 중복된 날짜의 저널 확인 (하루에 하나만 허용)
+      const dateCounts = new Map<string, number>();
+      allJournals.forEach((journal) => {
+        dateCounts.set(journal.date, (dateCounts.get(journal.date) || 0) + 1);
+      });
+
+      const duplicateDates = Array.from(dateCounts.entries()).filter(([_, count]) => count > 1);
+
+      if (duplicateDates.length > 0) {
+        console.log(`⚠️ ${duplicateDates.length}개의 중복 날짜 발견`);
+        for (const [date] of duplicateDates) {
+          // 가장 최근에 수정된 저널만 남기고 나머지 삭제
+          const journalsForDate = allJournals
+            .filter((j) => j.date === date)
+            .sort(
+              (a, b) => new Date(b.lastModifiedAt).getTime() - new Date(a.lastModifiedAt).getTime()
+            );
+
+          if (journalsForDate.length > 1) {
+            const toDelete = journalsForDate.slice(1);
+            for (const journal of toDelete) {
+              await this.db
+                .delete(schema.localJournals)
+                .where(eq(schema.localJournals.localId, journal.localId));
+            }
+            console.log(`🗑️ ${date}에서 ${toDelete.length}개의 중복 저널 제거`);
+          }
+        }
+      }
+
+      console.log('✅ 데이터베이스 정리 완료');
+    } catch (error) {
+      console.error('❌ 데이터베이스 정리 중 오류:', error);
     }
   }
 
@@ -55,7 +119,7 @@ class Database {
     // 실제 운영에서는 drizzle-kit generate와 migrate 사용
 
     try {
-      // 1. 로컬 저널 테이블 생성
+      // 1. 로컬 일기 테이블 생성
       await this.db.run(`
         CREATE TABLE IF NOT EXISTS local_journals (
           local_id TEXT PRIMARY KEY,
@@ -73,7 +137,7 @@ class Database {
         );
       `);
 
-      // 2. 로컬 저널 엔트리 테이블
+      // 2. 로컬 일기 엔트리 테이블
       await this.db.run(`
         CREATE TABLE IF NOT EXISTS local_journal_entries (
           local_id TEXT PRIMARY KEY,
@@ -136,7 +200,6 @@ class Database {
       await this.db.run(
         'CREATE INDEX IF NOT EXISTS entries_journal_idx ON local_journal_entries(local_journal_id);'
       );
-      await this.db.run('CREATE INDEX IF NOT EXISTS queue_retry_idx ON upload_queue(retry_after);');
 
       console.log('📋 Database tables created successfully');
     } catch (error) {
@@ -169,27 +232,24 @@ class Database {
   async getStats() {
     const db = this.getDb();
 
-    const [totalJournals, pendingUploads, localOnlyJournals, syncedJournals, conflictJournals] =
-      await Promise.all([
-        db.select({ count: count() }).from(schema.localJournals),
-        db.select({ count: count() }).from(schema.uploadQueue),
-        db
-          .select({ count: count() })
-          .from(schema.localJournals)
-          .where(eq(schema.localJournals.syncStatus, 'local')),
-        db
-          .select({ count: count() })
-          .from(schema.localJournals)
-          .where(eq(schema.localJournals.syncStatus, 'synced')),
-        db
-          .select({ count: count() })
-          .from(schema.localJournals)
-          .where(eq(schema.localJournals.syncStatus, 'conflict')),
-      ]);
+    const [totalJournals, localOnlyJournals, syncedJournals, conflictJournals] = await Promise.all([
+      db.select({ count: count() }).from(schema.localJournals),
+      db
+        .select({ count: count() })
+        .from(schema.localJournals)
+        .where(eq(schema.localJournals.syncStatus, 'local')),
+      db
+        .select({ count: count() })
+        .from(schema.localJournals)
+        .where(eq(schema.localJournals.syncStatus, 'synced')),
+      db
+        .select({ count: count() })
+        .from(schema.localJournals)
+        .where(eq(schema.localJournals.syncStatus, 'conflict')),
+    ]);
 
     return {
       totalJournals: totalJournals[0]?.count || 0,
-      pendingUploads: pendingUploads[0]?.count || 0,
       localOnlyJournals: localOnlyJournals[0]?.count || 0,
       syncedJournals: syncedJournals[0]?.count || 0,
       conflictJournals: conflictJournals[0]?.count || 0,
@@ -204,7 +264,6 @@ class Database {
 
     await db.run('DROP TABLE IF EXISTS local_journals;');
     await db.run('DROP TABLE IF EXISTS local_journal_entries;');
-    await db.run('DROP TABLE IF EXISTS upload_queue;');
     await db.run('DROP TABLE IF EXISTS cached_users;');
     await db.run('DROP TABLE IF EXISTS cached_groups;');
 

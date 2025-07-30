@@ -9,7 +9,7 @@ import type {
 } from '@/db/schema';
 import { Journal } from '@/types/journal';
 
-// 저널 생성 데이터 타입
+// 일기 생성 데이터 타입
 export interface CreateLocalJournalData {
   user_id: string;
   date: string;
@@ -20,7 +20,7 @@ export interface CreateLocalJournalData {
   shared_groups?: string[];
 }
 
-// 저널 업데이트 데이터 타입
+// 일기 업데이트 데이터 타입
 export interface UpdateLocalJournalData {
   mode?: 'free_writing' | 'prompt_based' | 'handwriting_upload';
   emotion_id?: string;
@@ -31,7 +31,7 @@ export interface UpdateLocalJournalData {
 
 class LocalJournalApiDrizzle {
   /**
-   * 특정 날짜에 저널이 존재하는지 확인
+   * 특정 날짜에 일기이 존재하는지 확인
    */
   async checkJournalExistsForDate(userId: string, date: string): Promise<boolean> {
     const db = database.getDb();
@@ -46,7 +46,7 @@ class LocalJournalApiDrizzle {
   }
 
   /**
-   * 로컬 저널 생성 🚀 (SQL 없이!)
+   * 로컬 일기 생성 🚀 (SQL 없이!)
    */
   async createJournal(
     data: CreateLocalJournalData
@@ -62,7 +62,7 @@ class LocalJournalApiDrizzle {
     const isShared = data.shared_groups && data.shared_groups.length > 0;
 
     return await database.transaction(async (tx) => {
-      // 1. 저널 생성 ✨
+      // 1. 일기 생성 ✨
       const journalData: LocalJournalInsert = {
         localId,
         userId: data.user_id,
@@ -70,7 +70,7 @@ class LocalJournalApiDrizzle {
         mode: data.mode,
         emotionId: data.emotion_id,
         sharedGroups: JSON.stringify(data.shared_groups || []),
-        syncStatus: isShared ? 'pending' : 'local',
+        syncStatus: isShared ? 'synced' : 'local',
         createdLocallyAt: now,
         lastModifiedAt: now,
         isShared: isShared,
@@ -78,7 +78,7 @@ class LocalJournalApiDrizzle {
 
       await tx.insert(schema.localJournals).values(journalData);
 
-      // 2. 저널 엔트리 생성 ✨
+      // 2. 일기 엔트리 생성 ✨
       const entries: LocalJournalEntry[] = [];
 
       if (data.mode === 'free_writing' && data.content) {
@@ -109,7 +109,7 @@ class LocalJournalApiDrizzle {
         entries.push(...(entryDataList as LocalJournalEntry[]));
       }
 
-      // 3. 생성된 저널 반환
+      // 3. 생성된 일기 반환
       const journal = await tx
         .select()
         .from(schema.localJournals)
@@ -124,12 +124,12 @@ class LocalJournalApiDrizzle {
   }
 
   /**
-   * 저널 ID로 조회 🔍
+   * 일기 ID로 조회 🔍
    */
   async getJournalById(localId: string): Promise<LocalJournal & { entries: LocalJournalEntry[] }> {
     const db = database.getDb();
 
-    // 저널과 엔트리 함께 조회 (JOIN 사용)
+    // 일기과 엔트리 함께 조회 (JOIN 사용)
     const result = await db
       .select()
       .from(schema.localJournals)
@@ -140,7 +140,7 @@ class LocalJournalApiDrizzle {
       .where(eq(schema.localJournals.localId, localId));
 
     if (result.length === 0) {
-      throw new Error(`저널을 찾을 수 없습니다: ${localId}`);
+      throw new Error(`일기를 찾을 수 없습니다: ${localId}`);
     }
 
     const journal = result[0].local_journals;
@@ -156,7 +156,7 @@ class LocalJournalApiDrizzle {
   }
 
   /**
-   * 특정 날짜의 저널 조회 📅
+   * 특정 날짜의 일기 조회 📅
    */
   async getJournalByDate(
     userId: string,
@@ -188,7 +188,7 @@ class LocalJournalApiDrizzle {
   }
 
   /**
-   * 날짜 범위로 저널 조회 📊
+   * 날짜 범위로 일기 조회 📊
    */
   async getJournalsByDateRange(
     userId: string,
@@ -216,7 +216,7 @@ class LocalJournalApiDrizzle {
   }
 
   /**
-   * 날짜 범위로 저널 조회 (완전한 정보 포함) 📊🔗
+   * 날짜 범위로 일기 조회 (완전한 정보 포함) 📊🔗
    */
   async getJournalsWithDetailsByDateRange(
     userId: string,
@@ -239,7 +239,7 @@ class LocalJournalApiDrizzle {
       )
       .orderBy(desc(schema.localJournals.date));
 
-    // 각 저널에 대해 엔트리들을 조회하고 추가
+    // 각 일기에 대해 엔트리들을 조회하고 추가
     const journalsWithDetails = await Promise.all(
       journals.map(async (journal) => {
         const entries = await db
@@ -259,7 +259,7 @@ class LocalJournalApiDrizzle {
   }
 
   /**
-   * 저널 업데이트 ✏️
+   * 일기 업데이트 ✏️
    */
   async updateJournal(
     localId: string,
@@ -268,17 +268,13 @@ class LocalJournalApiDrizzle {
     const now = getCurrentTimestamp();
 
     return await database.transaction(async (tx) => {
-      // 1. 기존 저널 조회
+      // 1. 기존 일기 조회
       const existing = await this.getJournalById(localId);
 
       const isShared = data.shared_groups && data.shared_groups.length > 0;
-      const newSyncStatus = isShared
-        ? 'pending'
-        : existing.syncStatus === 'synced'
-          ? 'pending'
-          : existing.syncStatus;
+      const newSyncStatus = isShared ? 'synced' : 'local';
 
-      // 2. 저널 기본 정보 업데이트 ✨
+      // 2. 일기 기본 정보 업데이트 ✨
       await tx
         .update(schema.localJournals)
         .set({
@@ -291,7 +287,7 @@ class LocalJournalApiDrizzle {
         })
         .where(eq(schema.localJournals.localId, localId));
 
-      // 3. 저널 엔트리 업데이트 (기존 삭제 후 재생성)
+      // 3. 일기 엔트리 업데이트 (기존 삭제 후 재생성)
       if (data.content !== undefined || data.answers !== undefined) {
         // 기존 엔트리 삭제
         await tx
@@ -325,39 +321,26 @@ class LocalJournalApiDrizzle {
         }
       }
 
-      // 4. 업데이트된 저널 반환
+      // 4. 업데이트된 일기 반환
       return await this.getJournalById(localId);
     });
   }
 
   /**
-   * 저널 삭제 🗑️
+   * 일기 삭제 🗑️
    */
   async deleteJournal(localId: string): Promise<void> {
     const db = database.getDb();
 
     await database.transaction(async (tx) => {
-      // 저널 엔트리 삭제 (CASCADE로 자동 삭제되지만 명시적으로)
+      // 일기 엔트리 삭제 (CASCADE로 자동 삭제되지만 명시적으로)
       await tx
         .delete(schema.localJournalEntries)
         .where(eq(schema.localJournalEntries.localJournalId, localId));
 
-      // 저널 삭제
+      // 일기 삭제
       await tx.delete(schema.localJournals).where(eq(schema.localJournals.localId, localId));
     });
-  }
-
-  /**
-   * 업로드 대기 중인 저널들 조회 📤
-   */
-  async getPendingJournals(): Promise<LocalJournal[]> {
-    const db = database.getDb();
-
-    return await db
-      .select()
-      .from(schema.localJournals)
-      .where(eq(schema.localJournals.syncStatus, 'pending'))
-      .orderBy(asc(schema.localJournals.createdLocallyAt));
   }
 
   /**
@@ -365,7 +348,7 @@ class LocalJournalApiDrizzle {
    */
   async updateSyncStatus(
     localId: string,
-    status: 'local' | 'pending' | 'synced' | 'conflict',
+    status: 'local' | 'synced' | 'conflict',
     serverId?: string,
     conflictData?: any
   ): Promise<void> {
@@ -388,7 +371,7 @@ class LocalJournalApiDrizzle {
    */
   convertToJournal(localJournal: LocalJournal & { entries?: LocalJournalEntry[] }): Journal {
     return {
-      id: localJournal.serverId || localJournal.localId,
+      id: localJournal.localId, // 항상 로컬 ID 사용
       user_id: localJournal.userId,
       date: localJournal.date,
       mode: localJournal.mode,
@@ -399,8 +382,8 @@ class LocalJournalApiDrizzle {
       emotion: null, // 별도 조회 필요
       journal_entries:
         localJournal.entries?.map((entry) => ({
-          id: entry.serverId || entry.localId,
-          journal_id: entry.serverJournalId || entry.localJournalId,
+          id: entry.localId, // 항상 로컬 ID 사용
+          journal_id: entry.localJournalId, // 항상 로컬 ID 사용
           entry_type: entry.entryType,
           text_content: entry.textContent,
           entry_order: entry.entryOrder,

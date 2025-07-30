@@ -33,6 +33,8 @@ import { Journal } from '@/types/journal';
 import { UserGroup } from '@/types/group';
 import { useAuthStore } from '@/store/authStore';
 import { getSunday, formatDate } from '@/utils/dateUtils';
+import { networkManager } from '@/utils/networkManager';
+import { supabase } from '@/utils/supabaseClient';
 
 export const journalQueryKeys = {
   all: ['journals'] as const,
@@ -43,7 +45,7 @@ export const journalQueryKeys = {
   detail: (id: string) => [...journalQueryKeys.all, 'detail', id] as const,
 };
 
-// 🗄️ 로컬 DB 기반 주간 저널 쿼리
+// 🗄️ 로컬 DB 기반 주간 일기 쿼리
 export const useWeeklyJournalsQuery = () => {
   const userId = useAuthStore((state) => state.session?.user?.id);
 
@@ -63,7 +65,7 @@ export const useWeeklyJournalsQuery = () => {
       }
 
       try {
-        // 1. 로컬 DB에서 주간 저널 가져오기
+        // 1. 로컬 DB에서 주간 일기 가져오기
         const localJournals = await localJournalApi.getJournalsWithDetailsByDateRange(
           userId,
           startDate,
@@ -74,7 +76,7 @@ export const useWeeklyJournalsQuery = () => {
         const emotions = await getLocalEmotions();
         const emotionsMap = new Map(emotions.map((e) => [e.id, e]));
 
-        // 3. 로컬 저널을 Journal 형태로 변환하면서 감정 정보 추가
+        // 3. 로컬 일기를 Journal 형태로 변환하면서 감정 정보 추가
         const journals: Journal[] = localJournals.map((localJournal) => {
           const emotion = localJournal.emotionId ? emotionsMap.get(localJournal.emotionId) : null;
 
@@ -125,7 +127,7 @@ export const useWeeklyJournalsQuery = () => {
 };
 
 /**
- * 🗄️ 로컬 DB 기반 월간 저널 쿼리
+ * 🗄️ 로컬 DB 기반 월간 일기 쿼리
  * @param year 조회할 연도 (e.g., 2024)
  * @param month 조회할 월 (1-12)
  */
@@ -144,7 +146,7 @@ export const useMonthlyJournalsQuery = (year: number, month: number) => {
       }
 
       try {
-        // 1. 로컬 DB에서 월간 저널 가져오기
+        // 1. 로컬 DB에서 월간 일기 가져오기
         const localJournals = await localJournalApi.getJournalsWithDetailsByDateRange(
           userId,
           startDate,
@@ -155,7 +157,7 @@ export const useMonthlyJournalsQuery = (year: number, month: number) => {
         const emotions = await getLocalEmotions();
         const emotionsMap = new Map(emotions.map((e) => [e.id, e]));
 
-        // 3. 로컬 저널을 Journal 형태로 변환하면서 감정 정보 추가
+        // 3. 로컬 일기를 Journal 형태로 변환하면서 감정 정보 추가
         const journals: Journal[] = localJournals.map((localJournal) => {
           const emotion = localJournal.emotionId ? emotionsMap.get(localJournal.emotionId) : null;
 
@@ -206,7 +208,7 @@ export const useMonthlyJournalsQuery = (year: number, month: number) => {
   });
 };
 
-// 🗄️ 로컬 DB 기반 개별 저널 상세 조회 쿼리
+// 🗄️ 로컬 DB 기반 개별 일기 상세 조회 쿼리
 export const useJournalDetailQuery = (journalId: string) => {
   const userId = useAuthStore((state) => state.session?.user?.id);
 
@@ -218,32 +220,76 @@ export const useJournalDetailQuery = (journalId: string) => {
       }
 
       try {
-        // 1. 로컬 DB에서 저널 조회 시도 (localId 또는 serverId 둘 다 가능)
+        // 1. 로컬 DB에서 일기 조회 시도
         let localJournal;
 
         try {
           // journalId가 localId인 경우
           localJournal = await localJournalApi.getJournalById(journalId);
-        } catch (error) {
-          // journalId가 serverId인 경우 - 서버에서 가져와서 로컬 형식으로 변환
-          console.log('Local journal not found, trying server...');
-          const serverJournal = await fetchJournalById(journalId);
 
-          // 서버 저널을 로컬 형식으로 변환 (메모리에서만)
-          localJournal = {
-            localId: `server_${journalId}`,
-            serverId: journalId,
-            userId: serverJournal.user_id,
-            date: serverJournal.date,
-            mode: serverJournal.mode,
-            emotionId: serverJournal.emotion_id,
-            sharedGroups: JSON.stringify(serverJournal.shared_groups || []),
-            syncStatus: 'synced' as const,
-            createdLocallyAt: serverJournal.created_at,
-            lastModifiedAt: serverJournal.updated_at,
-            isShared: (serverJournal.shared_groups || []).length > 0,
-            entries: serverJournal.journal_entries || [],
-          };
+          // 공유된 저널인 경우 서버 상태 확인
+          if (localJournal.serverId && localJournal.sharedGroups && networkManager.isOnline()) {
+            try {
+              const { data: serverJournal, error } = await supabase
+                .from('journals')
+                .select('id')
+                .eq('id', localJournal.serverId)
+                .single();
+
+              if (error || !serverJournal) {
+                // 서버에서 삭제된 저널 - 로컬에서 공유 해제
+                console.log(`🗑️ 서버에서 삭제된 저널 발견: ${localJournal.localId}`);
+
+                await localJournalApi.updateSyncStatus(localJournal.localId, 'local', undefined, {
+                  serverDeleted: true,
+                  deletedAt: new Date().toISOString(),
+                  reason: '서버에서 삭제됨',
+                });
+
+                // 공유 그룹 정보도 제거
+                await localJournalApi.updateJournal(localJournal.localId, {
+                  shared_groups: [],
+                });
+
+                // 업데이트된 저널 정보 다시 가져오기
+                localJournal = await localJournalApi.getJournalById(journalId);
+              }
+            } catch (syncError) {
+              console.error('서버 상태 확인 중 오류:', syncError);
+            }
+          }
+        } catch (localError) {
+          // 로컬에서 찾을 수 없는 경우 서버에서 시도 (온라인일 때만)
+          console.log('로컬 일기 없음, 서버에서 시도...');
+
+          if (!networkManager.isOnline()) {
+            throw new Error('오프라인 상태에서는 해당 일기를 찾을 수 없습니다.');
+          }
+
+          try {
+            const serverJournal = await fetchJournalById(journalId);
+
+            // 서버 일기를 로컬 형식으로 변환 (메모리에서만)
+            localJournal = {
+              localId: `server_${journalId}`,
+              serverId: journalId,
+              userId: serverJournal.user_id,
+              date: serverJournal.date,
+              mode: serverJournal.mode,
+              emotionId: serverJournal.emotion_id,
+              sharedGroups: JSON.stringify(serverJournal.shared_groups || []),
+              syncStatus: 'synced' as const,
+              createdLocallyAt: serverJournal.created_at,
+              lastModifiedAt: serverJournal.updated_at,
+              isShared: (serverJournal.shared_groups || []).length > 0,
+              entries: serverJournal.journal_entries || [],
+            };
+          } catch (serverError) {
+            console.error('서버에서도 일기를 찾을 수 없음:', serverError);
+            throw new Error(
+              '해당 일기를 찾을 수 없습니다. 삭제되었거나 접근 권한이 없을 수 있습니다.'
+            );
+          }
         }
 
         // 2. 감정 데이터 가져오기
@@ -288,7 +334,7 @@ export const useJournalDetailQuery = (journalId: string) => {
         return journal;
       } catch (error) {
         console.error('Failed to fetch journal detail:', error);
-        throw new Error('저널을 불러올 수 없습니다.');
+        throw new Error('일기를 불러올 수 없습니다.');
       }
     },
     enabled: !!journalId && !!userId,
@@ -452,7 +498,7 @@ export const useUserGroupsForSharing = () => {
 };
 
 /**
- * 새로운 저널을 생성하는 mutation 훅
+ * 새로운 일기를 생성하는 mutation 훅
  */
 export const useCreateJournalMutation = () => {
   const queryClient = useQueryClient();
@@ -474,42 +520,72 @@ export const useCreateJournalMutation = () => {
 };
 
 /**
- * 🗄️ 로컬 DB 기반 저널 삭제 mutation 훅
+ * 🗄️ 로컬 DB 기반 일기 삭제 mutation 훅
  */
 export const useDeleteJournalMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ journalId, userId }: { journalId: string; userId: string }) => {
-      // journalId가 local_으로 시작하면 로컬 저널
+      // journalId가 local_으로 시작하면 로컬 일기
       const isLocalJournal = journalId.startsWith('local_');
 
       if (isLocalJournal) {
-        // 로컬 저널 삭제 - 로컬에서만 삭제
+        // 로컬 일기인 경우 - 서버 공유 여부 확인 필요
         console.log(`🗑️ Deleting local journal: ${journalId}`);
+
+        // 1. 먼저 로컬 DB에서 일기 정보 조회 (serverId 확인)
+        const localJournal = await localJournalApi.getJournalById(journalId);
+
+        if (localJournal.serverId) {
+          // 서버에도 공유된 일기인 경우 - 온라인에서만 삭제 가능
+          console.log(
+            `🌐 서버에도 공유된 일기 (serverId: ${localJournal.serverId}) - 서버에서도 삭제`
+          );
+
+          if (!networkManager.isOnline()) {
+            throw new Error('그룹 공유 글 삭제는 온라인 상태에서만 가능합니다.');
+          }
+
+          // 온라인: 즉시 서버에서 삭제
+          try {
+            await deleteJournal(localJournal.serverId, userId);
+            console.log(`✅ 서버 일기 삭제 완료: ${localJournal.serverId}`);
+          } catch (serverError) {
+            console.error(`❌ 서버 일기 삭제 실패: ${localJournal.serverId}`, serverError);
+            throw new Error('서버에서 일기 삭제에 실패했습니다.');
+          }
+        }
+
+        // 2. 로컬에서 삭제
         await localJournalApi.deleteJournal(journalId);
+
+        // 상황에 따른 토스트 메시지
+        const toastMessage = localJournal.serverId
+          ? '로컬과 서버에서 모두 삭제되었습니다.'
+          : '로컬 일기가 삭제되었습니다.';
 
         Toast.show({
           type: 'success',
           text1: '일기 삭제 완료',
-          text2: '로컬 일기가 삭제되었습니다.',
+          text2: toastMessage,
           position: 'bottom',
         });
       } else {
-        // 서버 저널 삭제 - 서버와 로컬 둘 다 체크
+        // 서버 일기 삭제 - 서버와 로컬 둘 다 체크
         console.log(`🗑️ Deleting server journal: ${journalId}`);
 
         try {
           // 1. 서버에서 삭제
           await deleteJournal(journalId, userId);
 
-          // 2. 로컬에도 해당 serverId를 가진 저널이 있다면 삭제
+          // 2. 로컬에도 해당 serverId를 가진 일기이 있다면 삭제
           try {
-            // serverId로 로컬 저널 찾기 (구현되어 있다면)
+            // serverId로 로컬 일기 찾기 (구현되어 있다면)
             // 현재는 serverId로 직접 삭제하는 메서드가 없으므로 스킵
             console.log('✅ Server journal deleted successfully');
           } catch (localError) {
-            // 로컬에 해당 저널이 없는 경우 - 정상적인 상황
+            // 로컬에 해당 일기이 없는 경우 - 정상적인 상황
             console.log('Local journal not found - normal for server-only journals');
           }
 
@@ -537,7 +613,7 @@ export const useDeleteJournalMutation = () => {
       // 캐시 무효화 - 로컬 DB 기반 쿼리들
       queryClient.removeQueries({ queryKey: ['localJournals', 'detail', journalId] });
 
-      // 모든 로컬 저널 쿼리 무효화
+      // 모든 로컬 일기 쿼리 무효화
       queryClient.invalidateQueries({
         queryKey: ['localJournals'],
         refetchType: 'active', // 현재 활성 쿼리만 다시 가져오기
@@ -555,7 +631,7 @@ export const useDeleteJournalMutation = () => {
 };
 
 /**
- * 저널을 수정하는 mutation 훅
+ * 일기를 수정하는 mutation 훅
  */
 export const useUpdateJournalMutation = () => {
   const queryClient = useQueryClient();

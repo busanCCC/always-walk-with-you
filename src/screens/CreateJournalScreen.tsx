@@ -24,8 +24,8 @@ import { RootStackParamList } from '@/navigation/types';
 import { getTodayString } from '@/utils/journalUtils';
 import Toast from 'react-native-toast-message';
 import { localJournalApi } from '@/apis/localJournalApiDrizzle';
-import { uploadQueueManager } from '@/utils/uploadQueueManager';
 import { useNetwork } from '@/utils/networkManager';
+import { createJournal } from '@/apis/journalApi';
 
 interface QuestionAnswer {
   question_id: string;
@@ -69,7 +69,7 @@ const CreateJournalScreen: React.FC = () => {
   const { data: emotions = [] } = useEmotionsQuery();
   const { data: questions = [] } = useQuestionsQuery(journalDate);
 
-  // 저널 생성 mutation (기존 코드 - 필요시 폴백용)
+  // 일기 생성 mutation (기존 코드 - 필요시 폴백용)
   const createJournalMutation = useCreateJournalMutation();
 
   // 네트워크 상태
@@ -78,7 +78,7 @@ const CreateJournalScreen: React.FC = () => {
   // 사용자 정보
   const userId = useAuthStore((state) => state.session?.user?.id);
 
-  // 로컬 저널 생성 상태
+  // 로컬 일기 생성 상태
   const [isCreatingLocal, setIsCreatingLocal] = useState(false);
 
   // 기본 행복 감정 찾기 (이름이 '행복'인 감정을 찾거나 첫 번째 감정 사용)
@@ -215,7 +215,7 @@ const CreateJournalScreen: React.FC = () => {
     setIsCreatingLocal(true);
 
     try {
-      // 🗄️ 로컬 DB에 저널 생성
+      // 🗄️ 로컬 DB에 일기 생성
       let localJournalData;
 
       if (mode === 'free_writing') {
@@ -244,13 +244,25 @@ const CreateJournalScreen: React.FC = () => {
         };
       }
 
-      // 로컬 저널 생성
+      // 로컬 일기 생성
       const createdJournal = await localJournalApi.createJournal(localJournalData);
       console.log('📝 Local journal created:', createdJournal.localId);
 
-      // 📤 그룹 공유가 있다면 업로드 큐에 추가
+      // 📤 그룹 공유가 있다면 온라인에서만 처리
       if (selectedGroupIds.length > 0) {
-        // 서버 API 호환 형식으로 데이터 변환
+        if (!isOnline) {
+          // 오프라인에서는 그룹 공유 불가 - 이 상황은 발생하지 않아야 함 (UI에서 차단)
+          Toast.show({
+            type: 'error',
+            text1: '공유 실패',
+            text2: '그룹 공유는 온라인 상태에서만 가능합니다.',
+            visibilityTime: 3000,
+          });
+          setIsCreatingLocal(false);
+          return;
+        }
+
+        // 온라인: 서버에 바로 생성하고 로컬 일기 업데이트
         const serverData = {
           user_id: userId,
           date: dateString,
@@ -262,21 +274,28 @@ const CreateJournalScreen: React.FC = () => {
             : { answers: (localJournalData as any).answers }),
         };
 
-        await uploadQueueManager.addToQueue('create_journal', createdJournal.localId, serverData);
+        try {
+          const serverJournal = await createJournal(serverData);
 
-        // 오프라인 안내 토스트는 uploadQueueManager에서 자동으로 표시됨
-        if (isOnline) {
+          // 로컬 일기에 서버 ID 업데이트
+          await localJournalApi.updateSyncStatus(
+            createdJournal.localId,
+            'synced',
+            serverJournal.id
+          );
+
           Toast.show({
             type: 'success',
             text1: '저장 완료',
             text2: '일기가 저장되고 그룹에 공유되었습니다.',
             visibilityTime: 2000,
           });
-        } else {
+        } catch (error) {
+          console.error('서버 일기 생성 실패:', error);
           Toast.show({
-            type: 'success',
-            text1: '저장 완료',
-            text2: '일기가 저장되었습니다. 온라인 상태일 때 그룹에 공유됩니다.',
+            type: 'error',
+            text1: '공유 실패',
+            text2: '일기는 저장되었지만 그룹 공유에 실패했습니다.',
             visibilityTime: 3000,
           });
         }
@@ -361,9 +380,21 @@ const CreateJournalScreen: React.FC = () => {
         isSaving={isCreatingLocal}
         showGroupShare={true}
         selectedGroupIds={selectedGroupIds}
-        onShareToGroup={() => groupShareBottomSheetRef.current?.present()}
+        onShareToGroup={() => {
+          if (!isOnline) {
+            Toast.show({
+              type: 'info',
+              text1: '오프라인 모드',
+              text2: '그룹 공유는 온라인 상태에서만 가능합니다.',
+              visibilityTime: 2000,
+            });
+            return;
+          }
+          groupShareBottomSheetRef.current?.present();
+        }}
         onSelectGroups={handleSelectGroups}
         disabled={isCreatingLocal}
+        isOnline={isOnline}
       />
 
       {/* 뒤로가기 확인 모달 */}

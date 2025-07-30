@@ -5,35 +5,23 @@ import { UserGroup } from '@/types/group';
 // 로컬 데이터베이스 이름
 const DB_NAME = 'everyday_companion.db';
 
-// 로컬 저널 타입 (서버 업로드 상태 포함)
+// 로컬 일기 타입 (서버 업로드 상태 포함)
 export interface LocalJournal extends Omit<Journal, 'id'> {
   local_id: string; // 로컬 고유 ID
   server_id?: string; // 서버 ID (업로드 후 설정)
-  sync_status: 'local' | 'pending' | 'synced' | 'conflict';
+  sync_status: 'local' | 'synced' | 'conflict';
   created_locally_at: string;
   last_modified_at: string;
   is_shared: boolean; // 그룹 공유 여부
   conflict_data?: string; // 충돌 시 서버 데이터 JSON
 }
 
-// 로컬 저널 엔트리 타입
+// 로컬 일기 엔트리 타입
 export interface LocalJournalEntry extends Omit<JournalEntry, 'id' | 'journal_id'> {
   local_id: string;
-  local_journal_id: string; // 로컬 저널 ID 참조
+  local_journal_id: string; // 로컬 일기 ID 참조
   server_id?: string;
   server_journal_id?: string;
-}
-
-// 업로드 큐 아이템
-export interface UploadQueueItem {
-  id: string;
-  type: 'create_journal' | 'update_journal' | 'delete_journal';
-  local_journal_id: string;
-  data: string; // JSON 데이터
-  attempts: number;
-  created_at: string;
-  retry_after?: string;
-  error_message?: string;
 }
 
 // 사용자 캐시 타입
@@ -72,7 +60,7 @@ class LocalDatabase {
   private async createTables(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
-    // 1. 로컬 저널 테이블
+    // 1. 로컬 일기 테이블
     await this.db.execAsync(`
       CREATE TABLE IF NOT EXISTS local_journals (
         local_id TEXT PRIMARY KEY,
@@ -93,7 +81,7 @@ class LocalDatabase {
       );
     `);
 
-    // 2. 로컬 저널 엔트리 테이블
+    // 2. 로컬 일기 엔트리 테이블
     await this.db.execAsync(`
       CREATE TABLE IF NOT EXISTS local_journal_entries (
         local_id TEXT PRIMARY KEY,
@@ -105,22 +93,6 @@ class LocalDatabase {
         entry_order INTEGER NOT NULL DEFAULT 0,
         created_at TEXT,
         updated_at TEXT,
-        
-        FOREIGN KEY (local_journal_id) REFERENCES local_journals (local_id) ON DELETE CASCADE
-      );
-    `);
-
-    // 3. 업로드 큐 테이블
-    await this.db.execAsync(`
-      CREATE TABLE IF NOT EXISTS upload_queue (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        local_journal_id TEXT NOT NULL,
-        data TEXT NOT NULL, -- JSON data
-        attempts INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL,
-        retry_after TEXT,
-        error_message TEXT,
         
         FOREIGN KEY (local_journal_id) REFERENCES local_journals (local_id) ON DELETE CASCADE
       );
@@ -152,7 +124,6 @@ class LocalDatabase {
       CREATE INDEX IF NOT EXISTS idx_journals_user_date ON local_journals(user_id, date);
       CREATE INDEX IF NOT EXISTS idx_journals_sync_status ON local_journals(sync_status);
       CREATE INDEX IF NOT EXISTS idx_journals_shared ON local_journals(is_shared);
-      CREATE INDEX IF NOT EXISTS idx_queue_retry ON upload_queue(retry_after);
       CREATE INDEX IF NOT EXISTS idx_entries_journal ON local_journal_entries(local_journal_id);
     `);
 
@@ -191,7 +162,6 @@ class LocalDatabase {
    */
   async getStats(): Promise<{
     totalJournals: number;
-    pendingUploads: number;
     localOnlyJournals: number;
     syncedJournals: number;
     conflictJournals: number;
@@ -200,10 +170,6 @@ class LocalDatabase {
 
     const totalResult = await db.getFirstAsync<{ count: number }>(`
       SELECT COUNT(*) as count FROM local_journals
-    `);
-
-    const pendingResult = await db.getFirstAsync<{ count: number }>(`
-      SELECT COUNT(*) as count FROM upload_queue
     `);
 
     const localOnlyResult = await db.getFirstAsync<{ count: number }>(`
@@ -220,7 +186,6 @@ class LocalDatabase {
 
     return {
       totalJournals: totalResult?.count || 0,
-      pendingUploads: pendingResult?.count || 0,
       localOnlyJournals: localOnlyResult?.count || 0,
       syncedJournals: syncedResult?.count || 0,
       conflictJournals: conflictResult?.count || 0,
@@ -236,7 +201,6 @@ class LocalDatabase {
     await this.db.execAsync(`
       DROP TABLE IF EXISTS local_journals;
       DROP TABLE IF EXISTS local_journal_entries;
-      DROP TABLE IF EXISTS upload_queue;
       DROP TABLE IF EXISTS cached_users;
       DROP TABLE IF EXISTS cached_groups;
     `);
@@ -268,11 +232,6 @@ export const generateLocalId = (): string => {
 
 export const getCurrentTimestamp = (): string => {
   return new Date().toISOString();
-};
-
-// 동기화 상태 체크
-export const isSyncPending = (journal: LocalJournal): boolean => {
-  return journal.sync_status === 'pending';
 };
 
 export const isLocalOnly = (journal: LocalJournal): boolean => {
