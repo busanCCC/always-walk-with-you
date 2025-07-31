@@ -1,9 +1,10 @@
 import { create, StateCreator } from 'zustand';
 import { supabase } from '@/utils/supabaseClient';
-import { Session, User } from '@supabase/supabase-js';
-import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Session, User } from '@supabase/supabase-js';
 import NetInfo from '@react-native-community/netinfo';
+import Toast from 'react-native-toast-message';
+import { networkManager } from '@/utils/networkManager';
 
 export interface AuthState {
   session: Session | null;
@@ -88,8 +89,7 @@ const authStoreCreator: StateCreator<AuthState> = (set, get) => {
         }
 
         // 2단계: 네트워크 상태 확인
-        const networkState = await NetInfo.fetch();
-        const isOnline = networkState.isConnected && networkState.isInternetReachable;
+        const isOnline = networkManager.isOnline();
 
         console.log(`[AuthStore] 네트워크 상태: ${isOnline ? '온라인' : '오프라인'}`);
 

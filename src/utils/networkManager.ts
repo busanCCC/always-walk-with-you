@@ -8,6 +8,7 @@ export interface NetworkState {
   type: string | null;
   isWifi: boolean;
   isCellular: boolean;
+  isActuallyOnline: boolean; // 실제 인터넷 연결 테스트 결과
 }
 
 // 네트워크 이벤트 리스너 타입
@@ -21,7 +22,9 @@ class NetworkManager {
     type: null,
     isWifi: false,
     isCellular: false,
+    isActuallyOnline: false,
   };
+  private isTestingConnection = false;
 
   constructor() {
     this.initialize();
@@ -45,12 +48,59 @@ class NetworkManager {
       type: netInfoState.type,
       isWifi: netInfoState.type === 'wifi',
       isCellular: netInfoState.type === 'cellular',
+      isActuallyOnline: this.currentState.isActuallyOnline, // 기존 값 유지
     };
 
     // 상태가 변경된 경우에만 리스너들에게 알림
     if (JSON.stringify(this.currentState) !== JSON.stringify(newState)) {
       this.currentState = newState;
+
+      // 네트워크 연결이 감지되면 실제 인터넷 연결 테스트 수행
+      if (newState.isConnected && !this.isTestingConnection) {
+        this.testInternetConnection();
+      }
+
       this.notifyListeners(newState);
+    }
+  }
+
+  /**
+   * 실제 인터넷 연결 테스트
+   */
+  private async testInternetConnection(): Promise<void> {
+    if (this.isTestingConnection) return;
+
+    this.isTestingConnection = true;
+
+    try {
+      // AbortController를 사용한 타임아웃 구현
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5초 타임아웃
+
+      // 빠른 연결 테스트 (Cloudflare DNS)
+      const response = await fetch('https://1.1.1.1/cdn-cgi/trace', {
+        method: 'GET',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const isOnline = response.ok;
+
+      if (this.currentState.isActuallyOnline !== isOnline) {
+        this.currentState.isActuallyOnline = isOnline;
+        this.notifyListeners(this.currentState);
+      }
+
+      console.log('🌐 Internet connection test:', isOnline ? 'ONLINE' : 'OFFLINE');
+    } catch (error) {
+      console.log('🌐 Internet connection test failed:', error);
+
+      if (this.currentState.isActuallyOnline !== false) {
+        this.currentState.isActuallyOnline = false;
+        this.notifyListeners(this.currentState);
+      }
+    } finally {
+      this.isTestingConnection = false;
     }
   }
 
@@ -72,10 +122,10 @@ class NetworkManager {
   }
 
   /**
-   * 인터넷 연결 여부 확인
+   * 인터넷 연결 여부 확인 (실제 테스트 결과 포함)
    */
   isOnline(): boolean {
-    return this.currentState.isConnected && this.currentState.isInternetReachable;
+    return this.currentState.isConnected && this.currentState.isActuallyOnline;
   }
 
   /**
@@ -127,6 +177,10 @@ class NetworkManager {
   async refresh(): Promise<NetworkState> {
     const state = await NetInfo.refresh();
     this.updateState(state);
+
+    // 수동으로 인터넷 연결 테스트 수행
+    await this.testInternetConnection();
+
     return this.getState();
   }
 }
@@ -214,6 +268,7 @@ export const logNetworkState = () => {
     online: networkManager.isOnline(),
     connected: state.isConnected,
     reachable: state.isInternetReachable,
+    actuallyOnline: state.isActuallyOnline,
     type: state.type,
   });
 };

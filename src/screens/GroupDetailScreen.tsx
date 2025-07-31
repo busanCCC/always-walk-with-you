@@ -778,6 +778,7 @@ const styles = StyleSheet.create({
   },
   drawer: {
     width: DRAWER_WIDTH,
+    paddingVertical: spacing[10],
     position: 'absolute',
     right: 0,
     top: 0,
