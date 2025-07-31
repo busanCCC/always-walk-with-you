@@ -11,6 +11,7 @@ import {
   Keyboard,
   Animated,
   TouchableWithoutFeedback,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -97,6 +98,7 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
   const emotionBottomSheetRef = useRef<EmotionBottomSheetRef>(null);
   const groupShareBottomSheetRef = useRef<GroupShareBottomSheetRef>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const questionRefs = useRef<{ [key: number]: View | null }>({});
 
   // 키보드 높이 추적
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -230,7 +232,12 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
           const question =
             questions.find((q) => q.order_index === answer.order) || questions[index];
           return (
-            <View key={answer.order || index} style={styles.questionContainer}>
+            <View
+              key={answer.order || index}
+              style={styles.questionContainer}
+              ref={(ref) => {
+                questionRefs.current[index] = ref;
+              }}>
               <View style={styles.questionTextContainer}>
                 <Text style={styles.questionText}>
                   {question?.content || answer.question_text || `질문 ${index + 1}`}
@@ -251,33 +258,59 @@ const JournalEditorForm: React.FC<JournalEditorFormProps> = ({
                   blurOnSubmit={false}
                   enablesReturnKeyAutomatically={false}
                   onFocus={() => {
-                    // TextInput 포커스 시 해당 위치로 자동 스크롤
-                    setTimeout(
-                      () => {
-                        if (scrollViewRef.current) {
-                          // 질문별 예상 높이 (질문 텍스트 + 입력창 + 여백)
-                          const questionHeight = 140;
+                    // TextInput 포커스 시 즉시 스크롤
+                    if (scrollViewRef.current && questionRefs.current[index]) {
+                      // 실제 요소의 위치 측정
+                      questionRefs.current[index]?.measureLayout(
+                        scrollViewRef.current as any,
+                        (x, y) => {
+                          // 화면 높이의 중간 지점 계산 (키보드 고려)
+                          const screenHeight = Dimensions.get('window').height;
+                          const keyboardOffset = keyboardHeight > 0 ? keyboardHeight : 0;
+                          const availableHeight = screenHeight - keyboardOffset;
+                          const centerPosition = availableHeight / 2;
 
-                          // 현재 질문의 대략적인 Y 위치 계산
-                          const questionY = index * questionHeight;
+                          // 질문이 화면 중간에 오도록 스크롤 위치 계산
+                          const targetScrollY = y - centerPosition + 120;
 
-                          // 키보드 높이 고려한 스크롤 오프셋
-                          const keyboardOffset = keyboardHeight > 0 ? keyboardHeight + 100 : 250;
+                          const finalScrollY = Math.max(0, targetScrollY);
 
-                          // 마지막 질문들은 더 많이 스크롤
-                          const isLastQuestions = index >= promptAnswers.length - 2;
-                          const additionalScroll = isLastQuestions ? 200 : 100;
+                          console.log(`Scrolling to question ${index + 1}:`, {
+                            index,
+                            actualY: y,
+                            centerPosition,
+                            targetScrollY,
+                            finalScrollY,
+                            keyboardHeight,
+                            keyboardOffset,
+                            availableHeight,
+                          });
 
-                          const scrollToY = Math.max(0, questionY - additionalScroll);
+                          scrollViewRef.current?.scrollTo({
+                            y: finalScrollY,
+                            animated: true,
+                          });
+                        },
+                        () => {
+                          // 측정 실패 시 fallback 로직
+                          console.log(`Failed to measure question ${index + 1}, using fallback`);
+                          const questionHeight = 180;
+                          const headerHeight = 120;
+                          const questionStartY = headerHeight + index * questionHeight;
+                          const screenHeight = Dimensions.get('window').height;
+                          const keyboardOffset = keyboardHeight > 0 ? keyboardHeight : 0;
+                          const availableHeight = screenHeight - keyboardOffset;
+                          const centerPosition = availableHeight / 2;
+                          const targetScrollY = questionStartY - centerPosition + 60;
+                          const finalScrollY = Math.max(0, targetScrollY);
 
-                          scrollViewRef.current.scrollTo({
-                            y: scrollToY,
+                          scrollViewRef.current?.scrollTo({
+                            y: finalScrollY,
                             animated: true,
                           });
                         }
-                      },
-                      Platform.OS === 'ios' ? 300 : 150
-                    ); // iOS 키보드 애니메이션 고려
+                      );
+                    }
                   }}
                 />
               </View>
