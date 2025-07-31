@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
-import { SafeAreaView } from 'react-native-safe-area-context';
 import theme from '@/constants/theme';
 import { supabase } from '@/utils/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
@@ -114,7 +113,7 @@ export default function ProfileSetupScreen() {
   const defaultTextColor = theme.colors['dark-grey-02'];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <CustomHeader
         title="회원가입"
         showBackButton={false}
@@ -177,7 +176,7 @@ export default function ProfileSetupScreen() {
         message={alertModal.message}
         onClose={hideAlert}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
