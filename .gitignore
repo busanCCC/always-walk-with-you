@@ -37,3 +37,19 @@ android
 
 .env
 .env.*
+
+# Google Cloud / Firebase service account keys
+*-*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+
+# Taskmaster
+.taskmasterconfig
+tasks/
+
+# Cursor IDE
+.cursor/
+
+# PRD docs
+scripts/prd.txt
